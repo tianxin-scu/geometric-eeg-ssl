@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Data and checkpoints (NEVER committed)
+data/
+datasets/
+*.edf
+*.gdf
+*.fif
+*.set
+checkpoints/
+*.pt
+*.ckpt
+
+# Experiment tracking
+wandb/
+mlruns/
+.hydra/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# LaTeX build artifacts (in case report is built here)
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.toc
+*.synctex.gz
