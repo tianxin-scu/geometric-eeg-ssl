@@ -1,0 +1,9 @@
+# E7 channel-independent robustness evaluation
+seed: 0
+token_dim: 256
+spatial_depth: 2
+temporal_depth: 4
+heads: 8
+probe_epochs: 100
+batch_size: 64
+use_channel_independent: true
