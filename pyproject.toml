@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geo-eeg-ssl"
+version = "0.1.0"
+description = "Geometrically inductive self-supervised learning for EEG"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "Tianxin Zhou"}]
+dependencies = [
+  "torch>=2.0",
+  "numpy",
+  "scipy",
+  "scikit-learn",
+  "mne>=1.6",
+  "moabb",
+  "pyyaml",
+  "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "ruff",
+  "black",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
