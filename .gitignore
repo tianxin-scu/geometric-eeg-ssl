@@ -36,3 +36,13 @@ mlruns/
 *.blg
 *.toc
 *.synctex.gz
+
+# Local project notes and session context
+docs/
+
+# Claude Code
+CLAUDE.md
+.claude/
+
+# External reference repos (not part of this project)
+EEGPT/
