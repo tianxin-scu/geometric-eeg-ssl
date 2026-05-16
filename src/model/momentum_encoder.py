@@ -93,6 +93,8 @@ class PretrainModel(nn.Module):
         model = PretrainModel(backbone, lambda_R=1.0)
         optimizer = torch.optim.AdamW(model.online_parameters(), lr=1e-4)
 
+        total_steps = n_epochs * len(loader)
+        step = 0
         for x_batch in loader:                               # (B, M, T)
             T_p = cfg.arch.n_patches(x_batch.shape[-1])
             # 50 % random temporal masking
@@ -100,7 +102,10 @@ class PretrainModel(nn.Module):
             L, L_A, L_R = model(x_batch, mask, bias_tabs, val_tabs)
             L.backward()
             optimizer.step(); optimizer.zero_grad()
-            model.update_ema(tau=0.99)
+            tau = PretrainModel.cosine_tau(step, total_steps,
+                                           cfg.train.tau_base, cfg.train.tau_final)
+            model.update_ema(tau=tau)
+            step += 1
 
     For the transductive variant, omit bias_tabs and val_tabs.
 
@@ -147,11 +152,32 @@ class PretrainModel(nn.Module):
         )
 
     # ------------------------------------------------------------------
-    # EMA update
+    # EMA schedule + update
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def cosine_tau(
+        step: int,
+        total_steps: int,
+        tau_base: float = 0.996,
+        tau_final: float = 1.0,
+    ) -> float:
+        """Cosine EMA tau schedule (EEGPT-style).
+
+        Ramps tau from tau_base at step=0 to tau_final at step=total_steps:
+            tau(k) = 1 - (1 - tau_base) * (cos(pi * k / K) + 1) / 2
+
+        At k=0 the term (cos(0)+1)/2 = 1, so tau = tau_base.
+        At k=K the term (cos(pi)+1)/2 = 0, so tau = tau_final.
+
+        Call once per optimiser step, before update_ema().
+        """
+        import math
+        frac = step / max(total_steps, 1)
+        return tau_final - (tau_final - tau_base) * (math.cos(math.pi * frac) + 1) / 2
+
     @torch.no_grad()
-    def update_ema(self, tau: float = 0.99) -> None:
+    def update_ema(self, tau: float = 0.996) -> None:
         """EMA update of momentum backbone parameters.
 
         θ_m ← τ · θ_m + (1 − τ) · θ_o

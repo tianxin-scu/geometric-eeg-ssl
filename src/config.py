@@ -190,6 +190,59 @@ class ArchConfig:
 
 
 # ---------------------------------------------------------------------------
+# Training hyperparameters
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class TrainConfig:
+    """Training hyperparameters for the pretraining loop.
+
+    tau_base / tau_final define the cosine EMA schedule (EEGPT-style):
+        tau(k) = 1 - (1 - tau_base) * (cos(pi * k / K) + 1) / 2
+    which ramps from tau_base at step 0 to tau_final at step K.
+    Use PretrainModel.cosine_tau(step, total_steps, tau_base, tau_final)
+    to compute tau at each step.
+    """
+
+    lr: float = 1e-4
+    weight_decay: float = 1e-2
+    batch_size: int = 64
+    n_epochs: int = 100
+    lr_warmup_epochs: int = 10   # linear LR warmup before cosine decay
+
+    # EMA schedule: cosine ramp from tau_base to tau_final over training.
+    # EEGPT uses 0.996 → 1.0; the fixed-0.99 value in the BYOL paper is
+    # a reasonable alternative but gives a flatter momentum trajectory.
+    tau_base: float = 0.996
+    tau_final: float = 1.0
+
+    # Reconstruction loss weight (mirrors AblationConfig.lambda_recon for
+    # convenience so the training loop reads one config section).
+    lambda_R: float = 1.0
+
+    def __post_init__(self) -> None:
+        if self.lr <= 0:
+            raise ValueError(f"lr must be positive: {self.lr}")
+        if self.weight_decay < 0:
+            raise ValueError(f"weight_decay must be >= 0: {self.weight_decay}")
+        if self.batch_size <= 0:
+            raise ValueError(f"batch_size must be positive: {self.batch_size}")
+        if self.n_epochs <= 0:
+            raise ValueError(f"n_epochs must be positive: {self.n_epochs}")
+        if self.lr_warmup_epochs < 0:
+            raise ValueError(f"lr_warmup_epochs must be >= 0: {self.lr_warmup_epochs}")
+        if not (0.0 < self.tau_base < 1.0):
+            raise ValueError(f"tau_base must be in (0, 1): {self.tau_base}")
+        if not (self.tau_base <= self.tau_final <= 1.0):
+            raise ValueError(
+                f"tau_final must be in [tau_base, 1.0]: "
+                f"tau_base={self.tau_base}, tau_final={self.tau_final}"
+            )
+        if self.lambda_R < 0:
+            raise ValueError(f"lambda_R must be >= 0: {self.lambda_R}")
+
+
+# ---------------------------------------------------------------------------
 # Tier 3 -- artifact policy (asymmetric pretrain vs eval)
 # ---------------------------------------------------------------------------
 
@@ -222,6 +275,7 @@ class Config:
     arch: ArchConfig = field(default_factory=ArchConfig)
     ablation: AblationConfig = field(default_factory=AblationConfig)
     artifact: ArtifactConfig = field(default_factory=ArtifactConfig)
+    train: TrainConfig = field(default_factory=TrainConfig)
     version: str = "v1"
 
     def __post_init__(self) -> None:
@@ -272,5 +326,6 @@ class Config:
                 pretrain=PretrainArtifactConfig(**data["artifact"]["pretrain"]),
                 eval=EvalArtifactConfig(**data["artifact"]["eval"]),
             ),
+            train=TrainConfig(**data.get("train", {})),
             version=data.get("version", "v1"),
         )

@@ -208,4 +208,34 @@ for n, p in m10.momentum_backbone.named_parameters():
 print("PASS 10: update_ema(tau=1.0) leaves momentum params unchanged")
 
 
+# ---------------------------------------------------------------------------
+# 11. cosine_tau schedule properties
+# ---------------------------------------------------------------------------
+import math
+
+tau_base, tau_final = 0.996, 1.0
+K = 1000
+
+# Boundary values
+assert abs(PretrainModel.cosine_tau(0, K, tau_base, tau_final) - tau_base) < 1e-9, \
+    "cosine_tau at step 0 should equal tau_base"
+assert abs(PretrainModel.cosine_tau(K, K, tau_base, tau_final) - tau_final) < 1e-9, \
+    "cosine_tau at step K should equal tau_final"
+
+# Monotone increasing
+taus = [PretrainModel.cosine_tau(k, K, tau_base, tau_final) for k in range(0, K + 1, 100)]
+assert all(taus[i] <= taus[i + 1] for i in range(len(taus) - 1)), \
+    "cosine_tau must be non-decreasing"
+
+# All values in [tau_base, tau_final]
+assert all(tau_base <= t <= tau_final for t in taus), \
+    "cosine_tau must stay within [tau_base, tau_final]"
+
+# total_steps=0 edge case must not raise (guard against div-by-zero)
+v = PretrainModel.cosine_tau(0, 0, tau_base, tau_final)
+assert isinstance(v, float), "cosine_tau with total_steps=0 should return a float"
+
+print("PASS 11: cosine_tau schedule — boundaries, monotonicity, range, edge case")
+
+
 print("\nAll smoke tests passed.")
