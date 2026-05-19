@@ -9,6 +9,7 @@ env/
 # Data and checkpoints (NEVER committed)
 data/
 datasets/
+runs/
 *.edf
 *.gdf
 *.fif

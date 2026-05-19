@@ -1,3 +1,4 @@
+# Smoke config: 2 subjects, 5 epochs, small batch — quick proof-of-concept only.
 version: v1
 
 preprocess:
@@ -41,9 +42,9 @@ artifact:
 train:
   lr: 1.0e-4
   weight_decay: 1.0e-2
-  batch_size: 64
-  n_epochs: 100
-  lr_warmup_epochs: 10
+  batch_size: 32
+  n_epochs: 5
+  lr_warmup_epochs: 1
   tau_base: 0.996
   tau_final: 1.0
   lambda_R: 1.0

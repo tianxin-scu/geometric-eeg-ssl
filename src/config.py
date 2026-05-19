@@ -254,8 +254,15 @@ class PretrainArtifactConfig:
 
 @dataclass(frozen=True)
 class EvalArtifactConfig:
-    """Stricter policy for downstream linear-probe evaluation."""
-    amplitude_reject_uv: float = 100.0
+    """Artifact policy for downstream linear-probe evaluation.
+
+    amplitude_reject_uv: peak-amplitude threshold in µV. 0.0 = disabled.
+    Disabled by default: PhysioNet MI raw amplitudes routinely exceed 100 µV
+    (measured: up to ~600 µV after bandpass + resample), so any finite threshold
+    discards the majority of epochs. EEGPT makes the same choice — no amplitude
+    rejection, rely on per-epoch z-score normalization to suppress outliers.
+    """
+    amplitude_reject_uv: float = 0.0   # 0 = disabled (EEGPT stance)
     autoreject: bool = False  # opt-in; turn on if per-subject variance is high
 
 

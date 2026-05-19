@@ -231,8 +231,7 @@ def loso_eval(
 
         # Fit linear probe.
         clf = LogisticRegression(
-            max_iter=max_iter, C=1.0, solver="lbfgs",
-            multi_class="multinomial", n_jobs=-1,
+            max_iter=max_iter, C=1.0, solver="lbfgs", n_jobs=-1,
         )
         clf.fit(train_feats, train_y)
         y_pred = clf.predict(test_feats)
