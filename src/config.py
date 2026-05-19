@@ -66,7 +66,8 @@ class AblationConfig:
     """Knobs the proposal explicitly varies. Defaults match section 4."""
 
     # O1: where g_ij enters attention. "G1" = score-only (default).
-    geometry_injection: str = "G1"  # "G1" | "G2" | "G3"
+    # "none" = vanilla attention (channel-independent baseline, no geometry).
+    geometry_injection: str = "G1"  # "G1" | "G2" | "G3" | "none"
 
     # O2: codex on/off. False = geometric encoder (default, headline).
     use_codex: bool = False
@@ -79,8 +80,8 @@ class AblationConfig:
     mask_scheme: str = "joint"  # "joint" | "temporal" | "spatial"
 
     def __post_init__(self) -> None:
-        if self.geometry_injection not in {"G1", "G2", "G3"}:
-            raise ValueError(f"geometry_injection must be G1/G2/G3: {self.geometry_injection}")
+        if self.geometry_injection not in {"G1", "G2", "G3", "none"}:
+            raise ValueError(f"geometry_injection must be G1/G2/G3/none: {self.geometry_injection}")
         if not 0.0 <= self.mask_ratio < 1.0:
             raise ValueError(f"mask_ratio out of range: {self.mask_ratio}")
         if self.mask_scheme not in {"joint", "temporal", "spatial"}:
