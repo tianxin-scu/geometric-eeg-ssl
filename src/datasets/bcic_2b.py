@@ -120,6 +120,17 @@ class BCIC2B:
         return data, labels
 
     def load(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
+        from ._cache import load_or_build
+        return load_or_build(
+            dataset="bcic_2b",
+            mode=self.mode,
+            subjects=self.subjects,
+            cfg=self.cfg,
+            field_names=("X", "y", "ch_pos", "ch_names"),
+            build_fn=self._build,
+        )
+
+    def _build(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
         ds = self._moabb_dataset()
         sessions = ds.get_data(subjects=list(self.subjects))
 

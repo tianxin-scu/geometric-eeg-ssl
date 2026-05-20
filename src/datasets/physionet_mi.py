@@ -155,6 +155,17 @@ class PhysioNetMI:
 
     def load(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
         """Load all configured subjects. See module docstring for return shape."""
+        from ._cache import load_or_build
+        return load_or_build(
+            dataset="physionet_mi",
+            mode=self.mode,
+            subjects=self.subjects,
+            cfg=self.cfg,
+            field_names=("X", "y", "ch_pos", "ch_names"),
+            build_fn=self._build,
+        )
+
+    def _build(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
         all_X, all_y = [], []
         ch_pos_ref: Optional[np.ndarray] = None
         ch_names_ref: Optional[List[str]] = None

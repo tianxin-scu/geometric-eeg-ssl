@@ -195,6 +195,17 @@ class SleepEDFx:
 
     def load(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str], np.ndarray]:
         """Returns (X, y, ch_pos, ch_names, night)."""
+        from ._cache import load_or_build
+        return load_or_build(
+            dataset="sleep_edfx",
+            mode=self.mode,
+            subjects=self.subjects,
+            cfg=self.cfg,
+            field_names=("X", "y", "ch_pos", "ch_names", "night"),
+            build_fn=self._build,
+        )
+
+    def _build(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str], np.ndarray]:
         files = mne.datasets.sleep_physionet.age.fetch_data(
             subjects=list(self.subjects),
             recording=list(self.recordings),
