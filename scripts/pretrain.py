@@ -254,7 +254,13 @@ def main(argv=None):
     start_epoch = 0
     global_step = 0
     if args.resume is not None:
-        resume_path = ckpt_dir / args.resume
+        if args.resume == "latest":
+            ckpts = sorted(ckpt_dir.glob("epoch_*.pt"))
+            if not ckpts:
+                raise FileNotFoundError(f"No checkpoints found in {ckpt_dir}")
+            resume_path = ckpts[-1]
+        else:
+            resume_path = ckpt_dir / args.resume
         start_epoch, global_step = _load_checkpoint(
             resume_path, model, optimizer, scheduler, device
         )
