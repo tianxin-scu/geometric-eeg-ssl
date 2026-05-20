@@ -177,11 +177,7 @@ def _load_backbone(
 
     # Cross-montage codex handling: source M (from ckpt) may differ from target M.
     if use_codex:
-        ckpt_codex_keys = [k for k in online_state if k.endswith(".codex.weight")
-                           or k.endswith(".codex.embedding.weight")]
-        # Try common naming patterns.
-        if not ckpt_codex_keys:
-            ckpt_codex_keys = [k for k in online_state if "codex" in k and k.endswith(".weight")]
+        ckpt_codex_keys = [k for k in online_state if "codex" in k]
 
         if ckpt_codex_keys:
             src_M = None
