@@ -113,10 +113,11 @@ def _e2b(args) -> None:
 
 def _e2c(args) -> None:
     output_root = _eval_root(args) / "e2c"
+    # BCIC-2B has only 9 subjects (1-9); ignore --subjects to avoid out-of-range error.
     results = evaluate_variants(
         CROSS_MONTAGE_VARIANTS, dataset="bcic_2b", eval_protocol="loso",
         output_root=output_root,
-        subjects=args.subjects, device=args.device, max_iter=args.max_iter,
+        subjects=None, device=args.device, max_iter=args.max_iter,
     )
     print_bac_table(results, title="E2(c) — Cross-montage: 64-ch pretrain -> 3-ch BCIC-2B")
 

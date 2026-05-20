@@ -1,0 +1,423 @@
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+device: mps
+Discovering n_electrodes from sleep_edfx subject 1 ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8405999  =      0.000 ... 84059.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8549999  =      0.000 ... 85499.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  n_electrodes = 2
+backbone parameters: 4,770,128  (frozen)
+Within-subject night split over 10 subjects on sleep_edfx ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8405999  =      0.000 ... 84059.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8549999  =      0.000 ... 85499.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   1 | n1=20980 -> n2=21309 | BAC=0.609
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8411999  =      0.000 ... 84119.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8267999  =      0.000 ... 82679.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   2 | n1=20980 -> n2=20608 | BAC=0.534
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8459999  =      0.000 ... 84599.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8195999  =      0.000 ... 81959.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   3 | n1=21109 -> n2=20449 | BAC=0.568
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 7709999  =      0.000 ... 77099.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8375999  =      0.000 ... 83759.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   4 | n1=19221 -> n2=20861 | BAC=0.568
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8165999  =      0.000 ... 81659.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8417999  =      0.000 ... 84179.990 secs...
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4062E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4062E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4062EC-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4062EC-Hypnogram.edf'.
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   5 | n1=20372 -> n2=20985 | BAC=0.592
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8309999  =      0.000 ... 83099.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8489999  =      0.000 ... 84899.990 secs...
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4071E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4071E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4071EC-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4071EC-Hypnogram.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4072E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4072E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4072EH-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4072EH-Hypnogram.edf'.
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   6 | n1=20754 -> n2=21194 | BAC=0.604
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8429999  =      0.000 ... 84299.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8309999  =      0.000 ... 83099.990 secs...
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4081E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4081E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4081EC-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4081EC-Hypnogram.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4082E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4082E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4082EP-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4082EP-Hypnogram.edf'.
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   7 | n1=21045 -> n2=20716 | BAC=0.616
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8387999  =      0.000 ... 83879.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 7901999  =      0.000 ... 79019.990 secs...
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4091E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4091E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4091EC-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4091EC-Hypnogram.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4092E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4092E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4092EC-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4092EC-Hypnogram.edf'.
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   8 | n1=20929 -> n2=19703 | BAC=0.591
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8195999  =      0.000 ... 81959.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8573999  =      0.000 ... 85739.990 secs...
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4101E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4101E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4101EC-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4101EC-Hypnogram.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4102E0-PSG.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4102E0-PSG.edf'.
+Downloading data from 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette//SC4102EC-Hypnogram.edf' to file '/Users/zhou/mne_data/physionet-sleep-data/SC4102EC-Hypnogram.edf'.
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   9 | n1=20365 -> n2=15300 | BAC=0.614
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8159999  =      0.000 ... 81599.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8573999  =      0.000 ... 85739.990 secs...
+  subj  10 | n1=20374 -> n2=21395 | BAC=0.493
+
+Within-subject BAC: 0.579 ± 0.038
+results -> /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2a/g1_pilot_sleep_edfx_within_subject_night.json
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+device: mps
+Discovering n_electrodes from sleep_edfx subject 1 ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8405999  =      0.000 ... 84059.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8549999  =      0.000 ... 85499.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  n_electrodes = 2
+Cross-montage codex: ckpt M=64, target M=2; fallback=random
+  codex re-initialized at target M=2: 1 keys
+backbone parameters: 4,769,792  (frozen)
+Within-subject night split over 10 subjects on sleep_edfx ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8405999  =      0.000 ... 84059.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8549999  =      0.000 ... 85499.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   1 | n1=20980 -> n2=21309 | BAC=0.605
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8411999  =      0.000 ... 84119.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8267999  =      0.000 ... 82679.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   2 | n1=20980 -> n2=20608 | BAC=0.533
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8459999  =      0.000 ... 84599.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8195999  =      0.000 ... 81959.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   3 | n1=21109 -> n2=20449 | BAC=0.580
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 7709999  =      0.000 ... 77099.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8375999  =      0.000 ... 83759.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   4 | n1=19221 -> n2=20861 | BAC=0.573
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8165999  =      0.000 ... 81659.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8417999  =      0.000 ... 84179.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   5 | n1=20372 -> n2=20985 | BAC=0.599
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8309999  =      0.000 ... 83099.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8489999  =      0.000 ... 84899.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   6 | n1=20754 -> n2=21194 | BAC=0.612
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8429999  =      0.000 ... 84299.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8309999  =      0.000 ... 83099.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   7 | n1=21045 -> n2=20716 | BAC=0.620
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8387999  =      0.000 ... 83879.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 7901999  =      0.000 ... 79019.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   8 | n1=20929 -> n2=19703 | BAC=0.604
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8195999  =      0.000 ... 81959.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8573999  =      0.000 ... 85739.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+  subj   9 | n1=20365 -> n2=15300 | BAC=0.621
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8159999  =      0.000 ... 81599.990 secs...
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different highpass filters. Highest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Channels contain different lowpass filters. Lowest filter setting will be stored.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+/Users/zhou/Desktop/geometric-eeg-ssl/src/datasets/sleep_edfx.py:144: RuntimeWarning: Highpass cutoff frequency 16.0 is greater than lowpass cutoff frequency 0.7, setting values to 0 and Nyquist.
+  raw = mne.io.read_raw_edf(psg_path, preload=False, verbose="WARNING")
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+Reading 0 ... 8573999  =      0.000 ... 85739.990 secs...
+  subj  10 | n1=20374 -> n2=21395 | BAC=0.500
+
+Within-subject BAC: 0.585 ± 0.038
+results -> /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2a/codex_pilot_sleep_edfx_within_subject_night.json
+
+=== G1 (geometric, score-bias)  (pilot-scale, epoch_0099.pt) ===
+
+>>> /Users/zhou/Desktop/geometric-eeg-ssl/.venv/bin/python /Users/zhou/Desktop/geometric-eeg-ssl/scripts/probe.py --checkpoint /Users/zhou/Desktop/geometric-eeg-ssl/runs/pretrain/g1_pilot/epoch_0099.pt --dataset sleep_edfx --eval-protocol within_subject_night --output /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2a/g1_pilot_sleep_edfx_within_subject_night.json --subjects 1-10 --device mps
+
+=== Transductive codex  (pilot-scale, epoch_0099.pt) ===
+
+>>> /Users/zhou/Desktop/geometric-eeg-ssl/.venv/bin/python /Users/zhou/Desktop/geometric-eeg-ssl/scripts/probe.py --checkpoint /Users/zhou/Desktop/geometric-eeg-ssl/runs/pretrain/codex_pilot/epoch_0099.pt --dataset sleep_edfx --eval-protocol within_subject_night --output /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2a/codex_pilot_sleep_edfx_within_subject_night.json --subjects 1-10 --device mps
+
+E2(a) — Sleep-EDFx within-subject (n1 -> n2)
+--------------------------------------------
+Variant                                  Scale          BAC        std   n_subj
+--------------------------------------------------------------------------------
+G1 (geometric, score-bias)               pilot        0.579      0.038       10
+Transductive codex                       pilot        0.585      0.038       10

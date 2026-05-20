@@ -1,0 +1,254 @@
+device: mps
+Discovering n_electrodes from bcic_2b subject 1 ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  n_electrodes = 3
+backbone parameters: 4,770,128  (frozen)
+LOSO over 9 subjects on bcic_2b ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 1: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 2: 680 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 3: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 4: 740 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 5: 740 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 6: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 7: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 8: 760 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 9: 720 epochs
+  subj   1 | BAC=0.489  κ=-0.022
+  subj   2 | BAC=0.499  κ=-0.003
+  subj   3 | BAC=0.496  κ=-0.008
+  subj   4 | BAC=0.465  κ=-0.070
+  subj   5 | BAC=0.519  κ=0.038
+  subj   6 | BAC=0.481  κ=-0.039
+  subj   7 | BAC=0.496  κ=-0.008
+  subj   8 | BAC=0.528  κ=0.055
+  subj   9 | BAC=0.487  κ=-0.025
+
+LOSO BAC: 0.495 ± 0.018
+results -> /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2c/g1_pilot_bcic_2b_loso.json
+device: mps
+Discovering n_electrodes from bcic_2b subject 1 ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  n_electrodes = 3
+Cross-montage codex: ckpt M=64, target M=3; fallback=random
+  codex re-initialized at target M=3: 1 keys
+backbone parameters: 4,770,048  (frozen)
+LOSO over 9 subjects on bcic_2b ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 1: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 2: 680 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 3: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 4: 740 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 5: 740 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 6: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 7: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 8: 760 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 9: 720 epochs
+  subj   1 | BAC=0.519  κ=0.039
+  subj   2 | BAC=0.497  κ=-0.006
+  subj   3 | BAC=0.503  κ=0.006
+  subj   4 | BAC=0.500  κ=0.000
+  subj   5 | BAC=0.493  κ=-0.014
+  subj   6 | BAC=0.521  κ=0.042
+  subj   7 | BAC=0.485  κ=-0.031
+  subj   8 | BAC=0.500  κ=0.000
+  subj   9 | BAC=0.514  κ=0.028
+
+LOSO BAC: 0.504 ± 0.011
+results -> /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2c/codex_pilot_bcic_2b_loso.json
+device: mps
+Discovering n_electrodes from bcic_2b subject 1 ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+/Users/zhou/Desktop/geometric-eeg-ssl/scripts/probe.py:193: RuntimeWarning: codex_fallback='nn' is not implemented; falling back to random init of target codex (proposal §5 caveat).
+  warnings.warn(
+  n_electrodes = 3
+Cross-montage codex: ckpt M=64, target M=3; fallback=nn
+  codex re-initialized at target M=3: 1 keys
+backbone parameters: 4,770,048  (frozen)
+LOSO over 9 subjects on bcic_2b ...
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 1: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 2: 680 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 3: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 4: 740 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 5: 740 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 6: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 7: 720 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 8: 760 epochs
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+NOTE: pick_channels() is a legacy function. New code should use inst.pick(...).
+  subject 9: 720 epochs
+  subj   1 | BAC=0.504  κ=0.008
+  subj   2 | BAC=0.510  κ=0.021
+  subj   3 | BAC=0.518  κ=0.036
+  subj   4 | BAC=0.516  κ=0.032
+  subj   5 | BAC=0.518  κ=0.035
+  subj   6 | BAC=0.526  κ=0.053
+  subj   7 | BAC=0.515  κ=0.031
+  subj   8 | BAC=0.525  κ=0.050
+  subj   9 | BAC=0.535  κ=0.069
+
+LOSO BAC: 0.519 ± 0.009
+results -> /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2c/codex_pilot_bcic_2b_loso.json
+
+=== G1 (geometric, score-bias)  (pilot-scale, epoch_0099.pt) ===
+
+>>> /Users/zhou/Desktop/geometric-eeg-ssl/.venv/bin/python /Users/zhou/Desktop/geometric-eeg-ssl/scripts/probe.py --checkpoint /Users/zhou/Desktop/geometric-eeg-ssl/runs/pretrain/g1_pilot/epoch_0099.pt --dataset bcic_2b --eval-protocol loso --output /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2c/g1_pilot_bcic_2b_loso.json --device mps
+
+=== Transductive codex (random fallback)  (pilot-scale, epoch_0099.pt) ===
+
+>>> /Users/zhou/Desktop/geometric-eeg-ssl/.venv/bin/python /Users/zhou/Desktop/geometric-eeg-ssl/scripts/probe.py --checkpoint /Users/zhou/Desktop/geometric-eeg-ssl/runs/pretrain/codex_pilot/epoch_0099.pt --dataset bcic_2b --eval-protocol loso --output /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2c/codex_pilot_bcic_2b_loso.json --device mps --codex-fallback random
+
+=== Transductive codex (nn fallback)  (pilot-scale, epoch_0099.pt) ===
+
+>>> /Users/zhou/Desktop/geometric-eeg-ssl/.venv/bin/python /Users/zhou/Desktop/geometric-eeg-ssl/scripts/probe.py --checkpoint /Users/zhou/Desktop/geometric-eeg-ssl/runs/pretrain/codex_pilot/epoch_0099.pt --dataset bcic_2b --eval-protocol loso --output /Users/zhou/Desktop/geometric-eeg-ssl/runs/eval/pilot_10subj/e2c/codex_pilot_bcic_2b_loso.json --device mps --codex-fallback nn
+
+E2(c) — Cross-montage: 64-ch pretrain -> 3-ch BCIC-2B
+-----------------------------------------------------
+Variant                                  Scale          BAC        std   n_subj
+--------------------------------------------------------------------------------
+G1 (geometric, score-bias)               pilot        0.495      0.018        9
+Transductive codex (random fallback)     pilot        0.504      0.011        9
+Transductive codex (nn fallback)         pilot        0.519      0.009        9
