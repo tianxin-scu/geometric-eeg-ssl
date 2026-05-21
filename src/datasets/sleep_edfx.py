@@ -209,6 +209,8 @@ class SleepEDFx:
         files = mne.datasets.sleep_physionet.age.fetch_data(
             subjects=list(self.subjects),
             recording=list(self.recordings),
+            on_missing="warn",  # subjects 36/52 lack night 1, subject 13 lacks
+                                # night 2 — we filter via _MISSING_RECORDINGS
             verbose="WARNING",
         )
         # `files` is a list of (psg_path, hyp_path) tuples, in the order
