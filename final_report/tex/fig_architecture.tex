@@ -1,0 +1,59 @@
+%=============================================================================
+%  fig_architecture.tex
+%
+%  FIGURE 1: Overall architecture of the proposed model.
+%
+%  Flow (top-down):
+%    raw EEG  ->  patches/projection  ->  spatial encoder (online + momentum)
+%                                     ->  time-step summaries  S_t
+%                                     ->  temporal Transformer  ->  losses
+%
+%  USAGE:    \input{fig_architecture} inside a figure environment.
+%            Assumes the same TikZ style header as review_fig_flow.tex
+%            (tealbox, greenbox, bluebox, amberbox, purplebox, graybox,
+%            fwd, ema, stopgrad).
+%
+%  DO NOT COMPILE. TikZ only.
+%=============================================================================
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}[x=1cm, y=1cm]
+
+    % --- Main vertical pipeline ---------------------------------------------
+    \node[tealbox,  minimum width=4.6cm] (raw)   at (0,  0)
+      {\small raw EEG  $\mathbf{X}\in\mathbb{R}^{M\times T}$};
+
+    \node[graybox,  minimum width=4.6cm] (geo)   at (0, -1.7)
+      {\small geometric descriptor\\[-1pt]
+       $g_{ij} \in \mathbb{R}^4$ (Eq.~\ref{eq:geo_desc})};
+
+    \node[purplebox,minimum width=4.6cm,minimum height=1.2cm] (eegpt) at (0, -3.6)
+      {\small \textbf{EEGPT-style backbone}};
+
+    \node[tealbox,  minimum width=4.6cm] (out)   at (0, -5.3)
+      {\small representation  $z\in\mathbb{R}^d$};
+
+    % --- Side input: coordinate table from montage --------------------------
+    \node[graybox, minimum width=2.6cm, minimum height=1.0cm,
+          align=left, font=\scriptsize, dashed] (coord) at (-5.4, -1.7)
+      {\textbf{montage coords}\\
+       $\{p_i \in \mathbb{R}^3\}$};
+
+    % --- Forward arrows -----------------------------------------------------
+    \draw[fwd] (raw)   -- (geo);
+    \draw[fwd] (geo)   -- (eegpt);
+    \draw[fwd] (eegpt) -- (out);
+    \draw[fwd] (coord.east) -- (geo.west);
+
+  \end{tikzpicture}
+  \caption{\textbf{Architecture overview.} My contribution is the middle
+  block: raw EEG plus the montage's electrode coordinates yield a geometric
+  descriptor $g_{ij}$ that conditions the spatial attention of an otherwise
+  standard EEGPT-style backbone. The codex of
+  per-electrode embeddings used by EEGPT is removed; $g_{ij}$ takes its
+  place as the spatial inductive bias. Coordinates are side information
+  read from the recording montage --- digitized when available, otherwise
+  taken from a 10--20 template.}
+  \label{fig:arch}
+\end{figure}
