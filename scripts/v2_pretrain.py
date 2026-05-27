@@ -30,7 +30,7 @@ import argparse
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 _repo_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_repo_root))
@@ -74,6 +74,18 @@ def _parse_args(argv=None):
              "large ones are subsampled to hit this exact count.",
     )
     p.add_argument(
+        "--n-subjects-per-dataset", type=int, default=None,
+        help="Cap subjects per dataset (subject-level balancing; Option A "
+             "in docs/v2/experiment_protocol.md). Default: use all subjects.",
+    )
+    p.add_argument(
+        "--variant", choices=("geometric", "chind"), default="geometric",
+        help="Spatial encoder variant. 'geometric' = g3 + 10-D descriptor "
+             "(the headline). 'chind' = geometry_injection=none "
+             "(channel-independent baseline; no spatial structure). "
+             "'codex' variant is deferred -- see docs/v2/experiment_protocol.md.",
+    )
+    p.add_argument(
         "--ckpt-dir", default=None,
         help="Default: runs/pretrain/v2_<timestamp>.",
     )
@@ -88,24 +100,38 @@ def _parse_args(argv=None):
 # Dataset loading
 # ---------------------------------------------------------------------------
 
-def _load_dataset(name: str, cfg: Config) -> Tuple[torch.Tensor, torch.Tensor, List[str]]:
+def _load_dataset(
+    name: str, cfg: Config, n_subjects: Optional[int] = None,
+) -> Tuple[torch.Tensor, torch.Tensor, List[str]]:
     """Run v1 loader (cached signals), recompute ch_pos with v2 normalizer.
 
     Returns (X, ch_pos_v2, ch_names) -- ch_pos is the fixed-scale variant
     derived from ch_names, NOT what the v1 loader put in its cache.
+
+    If n_subjects is given, the first n subjects of each dataset's natural
+    list are used (Option A subject-level balancing). BCIC-2B's hard
+    ceiling is 9, so n_subjects > 9 still gets only 9 for BCIC.
     """
     if name == "physionet_mi":
         subjects = [s for s in range(1, 110) if s not in PHYS_EXCLUDED]
+        if n_subjects is not None:
+            subjects = subjects[:n_subjects]
         X, _y, _cp_v1, ch_names = PhysioNetMI(
             subjects=subjects, cfg=cfg, mode="pretrain", verbose=True
         ).load()
     elif name == "bcic_2b":
+        subjects = list(BCIC_ALL)
+        if n_subjects is not None:
+            subjects = subjects[:n_subjects]
         X, _y, _cp_v1, ch_names = BCIC2B(
-            subjects=list(BCIC_ALL), cfg=cfg, mode="pretrain", verbose=True
+            subjects=subjects, cfg=cfg, mode="pretrain", verbose=True
         ).load()
     elif name == "sleep_edfx":
+        subjects = list(SLEEP_ALL)
+        if n_subjects is not None:
+            subjects = subjects[:n_subjects]
         X, _y, _cp_v1, ch_names, _night = SleepEDFx(
-            subjects=list(SLEEP_ALL), cfg=cfg, mode="pretrain", verbose=True
+            subjects=subjects, cfg=cfg, mode="pretrain", verbose=True
         ).load()
     else:
         raise ValueError(f"unknown dataset: {name}")
@@ -118,18 +144,29 @@ def _load_dataset(name: str, cfg: Config) -> Tuple[torch.Tensor, torch.Tensor, L
 # Model + scheduler
 # ---------------------------------------------------------------------------
 
-def _build_model(cfg: Config) -> PretrainModelV2:
+def _build_model(cfg: Config, variant: str) -> PretrainModelV2:
+    """Build the v2 PretrainModel for one of the variants.
+
+    variant = 'geometric': uses cfg.ablation.geometry_injection (G3 default).
+    variant = 'chind':     forces geometry_injection='none' (channel-independent).
+    """
     abl = cfg.ablation
     arch = cfg.arch
     if abl.use_codex:
         raise ValueError(
-            "v2 has no codex baseline; use_codex must be False in the v2 config."
+            "v2 has no codex baseline yet (deferred); use_codex must be False."
         )
+    if variant == "geometric":
+        geom = abl.geometry_injection.lower()
+    elif variant == "chind":
+        geom = "none"
+    else:
+        raise ValueError(f"unknown variant: {variant!r}")
     spatial = GeometricSpatialEncoderV2(
         d_model=arch.d_model,
         n_heads=arch.n_heads_spatial,
         n_layers=arch.n_layers_spatial,
-        geometry_injection=abl.geometry_injection.lower(),
+        geometry_injection=geom,
         geom_mlp_hidden=arch.geom_mlp_hidden,
         dropout=arch.dropout,
     )
@@ -210,15 +247,18 @@ def main(argv=None):
 
     if args.ckpt_dir is None:
         ts = time.strftime("%Y%m%d_%H%M%S")
-        args.ckpt_dir = f"runs/pretrain/v2_{ts}"
+        args.ckpt_dir = f"runs/pretrain/v2_{args.variant}_{ts}"
     ckpt_dir = Path(args.ckpt_dir)
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     cfg.to_yaml(str(ckpt_dir / "config.yaml"))
-    # Drop a tiny run-spec sidecar so the held-out dataset is recoverable.
+    # Drop a tiny run-spec sidecar so the held-out dataset + variant
+    # are recoverable from the checkpoint dir alone.
     (ckpt_dir / "v2_run.txt").write_text(
+        f"variant: {args.variant}\n"
         f"pretrain_datasets: {','.join(pretrain_names)}\n"
         f"held_out: {','.join(held_out)}\n"
         f"epochs_per_dataset: {args.epochs_per_dataset}\n"
+        f"n_subjects_per_dataset: {args.n_subjects_per_dataset}\n"
     )
 
     if args.device is not None:
@@ -235,7 +275,7 @@ def main(argv=None):
     datasets: Dict[str, Tuple[torch.Tensor, torch.Tensor]] = {}
     for name in pretrain_names:
         print(f"\n--- loading {name} ---")
-        X, pos, ch_names = _load_dataset(name, cfg)
+        X, pos, ch_names = _load_dataset(name, cfg, n_subjects=args.n_subjects_per_dataset)
         pos = pos.to(device)
         print(f"  X={tuple(X.shape)}  M={pos.shape[0]}  ch_names[0..5]={ch_names[:5]}")
         datasets[name] = (X, pos)
@@ -256,9 +296,9 @@ def main(argv=None):
     )
 
     # Model + optimizer.
-    model = _build_model(cfg).to(device)
+    model = _build_model(cfg, variant=args.variant).to(device)
     n_params = sum(p.numel() for p in model.online_parameters())
-    print(f"online parameters: {n_params:,}")
+    print(f"variant: {args.variant}  |  online parameters: {n_params:,}")
 
     optimizer = torch.optim.AdamW(
         model.online_parameters(),
