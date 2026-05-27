@@ -48,11 +48,6 @@ Context to know:
 - The fallback decision affects probe code, not pretrain code — codex
   pretraining itself can land before we settle fallback details.
 
-I also want to revisit the g_ij descriptor design while we discuss
-codex — the current 10-D [p_i, p_j, p_i-p_j, ||p_i-p_j||] choice was
-made for v2.0; I want to talk through whether any richer descriptor
-makes sense in light of what codex needs.
-
 Start by reading the two design docs, then walk me through your
 recommended answer to each codex design question with reasoning. Don't
 implement until I've signed off on the design.
@@ -60,7 +55,60 @@ implement until I've signed off on the design.
 
 ---
 
-## 2. v2 completion (everything except codex)
+## 2. g_ij descriptor and G1/G2/G3 injection — mathematical deep dive
+
+**Recommended model:** Opus 4.7.
+
+This is open-ended architectural reasoning about whether the current
+geometric design is optimal. Needs deep mathematical engagement, not
+just implementation. Use Opus.
+
+### Prompt to paste
+
+```
+I want a focused mathematical discussion of the geometric conditioning
+design in v2. No implementation yet — design discussion only.
+
+Context to read first:
+- src/v2/model/geometric_attention_v2.py  (the full implementation)
+- src/config.py  (AblationConfig.geometry_injection, default G1;
+  overridden to G3 in configs/v2/pretrain/v2_default.yaml)
+- docs/v2/v2_scope.md  (why 10-D descriptor was chosen over v1's 4-D)
+
+Background I already understand:
+- g_ij = [p_i, p_j, p_i−p_j, ‖p_i−p_j‖] ∈ ℝ^10 (dims 0–5 are absolute
+  positions of i and j; dims 6–8 are signed displacement; dim 9 is scalar
+  distance). v1 used only dims 6–9.
+- G1: geometry enters as additive score bias b_ij = MLP_bias(g_ij) ∈ ℝ^H,
+  added to QK^T/√d before softmax. Warps which electrode attends to which.
+- G2: geometry enters as a value increment Δv_ij = MLP_value(g_ij) ∈ ℝ^d,
+  weighted by attention weights: out_i += Σ_j A_ij · Δv_ij. Warps the
+  content of the message that flows along each edge.
+- G3 = G1 + G2 simultaneously. This is what's running in all current pretrain
+  runs (v2_default.yaml: geometry_injection: G3).
+
+Questions I want to work through:
+1. What does each of G1, G2, G3 actually buy representationally? Is G3
+   strictly better or does combining them introduce redundancy/interference?
+2. The 10-D descriptor adds absolute position (dims 0–5) on top of v1's
+   relative descriptor (dims 6–9). Under what conditions does the MLP
+   actually need the absolute position? Is there a risk the model memorizes
+   montage-specific positions and loses cross-montage generalization?
+3. Are there richer or alternative descriptors worth considering
+   (e.g. spherical harmonics on the scalp, geodesic distance, normal
+   vectors)? What is the cost/benefit vs the current flat 10-D design?
+4. G1 and G2 are implemented but neither is used in isolation in any current
+   run — only G3. Should the ablation (G1 vs G2 vs G3) be part of the
+   experiment, or is G3 the right committed default?
+
+Walk me through each question with mathematical reasoning. Flag any design
+risk that could undermine the cross-montage generalization claim before I
+commit to the current descriptor for the paper.
+```
+
+---
+
+## 3. v2 completion (everything except codex)
 
 **Recommended model:** Opus 4.7.
 
@@ -102,3 +150,11 @@ Two easy paths:
    `https://github.com/tianxin-scu/geometric-eeg-ssl/blob/v2-improvements/docs/v2/handoff_prompts.md`.
    Bookmark it.
 2. **Locally** — open `docs/v2/handoff_prompts.md` in your editor.
+
+## Session index
+
+| # | Topic | Model |
+|---|---|---|
+| 1 | Codex variant — design + implementation | Sonnet 4.6 |
+| 2 | g_ij descriptor and G1/G2/G3 mathematical deep dive | Opus 4.7 |
+| 3 | v2 completion (probe, eval notebook, results, report) | Opus 4.7 |
