@@ -164,6 +164,65 @@ Once these are decided, write `src/v2/model/transductive_baseline_v2.py`
 and add the three codex pretrain cells to section 7.codex of the
 pretrain notebook.
 
+## v2 completion checklist
+
+State of things, so any fresh session can pick up. Tick items as they're
+finished.
+
+**Done.**
+- [x] `src/v2/{preprocess,losses}.py` + `src/v2/model/{geometric_attention_v2,backbone_v2}.py` + `src/v2/datasets/mixed_corpus.py` + `tests/smoke_test_v2.py` (all smoke-tested).
+- [x] `scripts/v2_pretrain.py` with `--variant {geometric,chind}` and `--n-subjects-per-dataset` flags.
+- [x] `configs/v2/pretrain/v2_default.yaml`.
+- [x] `notebooks/colab_v2_pretrain.ipynb` — 6 pretrain cells (3 splits × 2 variants) + codex placeholder.
+- [x] `docs/v2/v2_scope.md` and this protocol document.
+
+**In progress (Colab GPU sessions).**
+- [ ] 6 pretrain runs producing `runs/pretrain/v2_{geometric,chind}_{no_sleep,no_bcic,no_phys}/epoch_*.pt` checkpoints.
+
+**Not started — required to complete v2 (excluding codex).**
+- [ ] **Probe v2 wrapper.** `scripts/probe.py` is hardcoded to v1's
+      `Backbone`. Pick one:
+      (a) extend `probe.py` with a `--v2-checkpoint` flag that loads
+          `BackboneV2` and recomputes `ch_pos` via `src/v2/preprocess`; or
+      (b) write `scripts/v2_probe.py` mirroring v1's structure but
+          importing v2 modules. Choice (b) keeps v1 untouched, matches
+          the v2-isolation discipline of `src/v2/`.
+- [ ] **Per-dataset eval helpers.** For each held-out dataset, the eval
+      protocol differs slightly (LOSO vs night-split). Mirror v1's
+      `scripts/_eval_utils.py` pattern but for v2; or reuse it as-is if
+      the v2 probe wrapper produces the same JSON schema.
+- [ ] **`notebooks/colab_v2_experiment.ipynb`.** Drive-mount + repo
+      clone (mirror pretrain notebook sections 1-4), then per
+      `(variant, split)` checkpoint: run the v2 probe on the held-out
+      dataset, save JSON to `runs/eval/v2/<split>/<variant>_<dataset>.json`.
+      Final cell: aggregate to the 3-row × 3-column BAC table (codex
+      column empty until variant lands).
+- [ ] **Results aggregation.** `scripts/v2_results.py` reads the 6
+      (or 9) eval JSONs and emits the headline table as
+      `results/v2/headline.txt` + a markdown version for the report.
+- [ ] **Report + slides update.** Add the v2 section to
+      `final_report/report.md` and `final_report/slides.md` with the
+      3×3 table and a one-paragraph interpretation.
+- [ ] **Session log.** Append a v2 entry to `docs/session_log.md`
+      describing what shipped.
+
+**Deferred (codex variant — separate workstream).**
+- [ ] Resolve the three design questions in §"Codex variant: deferred
+      design questions" below.
+- [ ] Write `src/v2/model/transductive_baseline_v2.py` and add
+      `--variant codex` to `scripts/v2_pretrain.py`.
+- [ ] Add 3 codex pretrain cells to section 7.codex of the notebook.
+- [ ] Implement chosen fallback(s) in the v2 probe wrapper.
+- [ ] Add the codex column to the headline table.
+
+## Where to pick up if a fresh session starts
+
+1. Read `CLAUDE.md`, then `docs/v2/v2_scope.md`, then this file.
+2. Check this checklist for what's done vs not.
+3. Check `runs/pretrain/` for which checkpoints exist (`ls runs/pretrain/v2_*`).
+4. The smallest meaningful next step is usually the **probe v2 wrapper**
+   — without it, no checkpoint can be evaluated.
+
 ## What's explicitly NOT in this protocol
 
 - **v1 baselines as competitors.** v2's competitors are the v2
