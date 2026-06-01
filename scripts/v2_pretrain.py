@@ -66,7 +66,9 @@ def _parse_args(argv=None):
     p.add_argument(
         "--pretrain-datasets", required=True,
         help="Comma-separated names from {physionet_mi, bcic_2b, sleep_edfx}. "
-             "The remaining one is held out for downstream eval.",
+             "1 to 3 names. The remaining dataset(s) are held out for "
+             "downstream zero-shot eval (a single name => the other two are "
+             "both held out; this is the v2.3 single-montage design).",
     )
     p.add_argument(
         "--epochs-per-dataset", type=int, required=True,
@@ -235,10 +237,13 @@ def main(argv=None):
     cfg = Config.from_yaml(args.config)
 
     pretrain_names = [n.strip() for n in args.pretrain_datasets.split(",")]
-    if len(pretrain_names) < 2 or len(pretrain_names) > 3:
+    if len(pretrain_names) < 1 or len(pretrain_names) > 3:
         raise ValueError(
-            f"--pretrain-datasets needs 2 or 3 names; got {pretrain_names}"
+            f"--pretrain-datasets needs 1 to 3 names; got {pretrain_names}"
         )
+    # A single pretrain dataset (v2.3) is allowed: the MixedCorpus round-robin
+    # degenerates to that one dataset, and `held_out` becomes the OTHER two,
+    # both probed zero-shot. See docs/v2/v2_3_single_montage.md.
     bad = [n for n in pretrain_names if n not in VALID_DATASETS]
     if bad:
         raise ValueError(f"unknown dataset(s): {bad}; valid = {sorted(VALID_DATASETS)}")
