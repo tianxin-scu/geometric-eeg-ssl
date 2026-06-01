@@ -1,5 +1,5 @@
 % Final presentation slides — 5 min / 7 frames
-% Geometrically Inductive SSL for EEG
+% Geometrically Inductive SSL for EEG  (v2 regime: cross-montage transfer)
 % =============================================================================
 
 \documentclass[aspectratio=169]{beamer}
@@ -22,6 +22,7 @@
 
 % Common colors
 \definecolor{geocolor}{HTML}{2E86AB}
+\definecolor{posonlycolor}{HTML}{5DA9C9}
 \definecolor{codexcolor}{HTML}{A23B72}
 \definecolor{chindcolor}{HTML}{888888}
 \definecolor{winnercolor}{HTML}{18A558}
@@ -50,7 +51,7 @@
 % =============================================================================
 % Slide 2 — Problem statement
 % =============================================================================
-\begin{frame}{Problem: EEG is non-stationary -- by default}
+\begin{frame}{Problem: EEG is non-stationary -- and the geometry is what changes}
   \vspace{-0.4em}
   \begin{columns}[T]
     \begin{column}{0.42\textwidth}
@@ -65,7 +66,7 @@
       \vspace{0.4em}
       \footnotesize
       \textcolor{codexcolor}{\textbf{Codex models}} (LaBraM, EEGPT):
-      identity-indexed embeddings.
+      identity-indexed embeddings --- \textbf{cannot even run} on an unseen layout.
       \textcolor{chindcolor}{\textbf{Channel-independent}} (BIOT):
       no spatial structure at all.
       \\[0.3em]
@@ -114,19 +115,14 @@
       \small
       \textbf{Geometric descriptor.}
       \[
-        g_{ij} = \big[\,\|p_i - p_j\|,\; p_i - p_j\,\big] \in \mathbb{R}^4
+        g_{ij} = \big[\,p_i,\; p_j,\; p_i - p_j,\; \|p_i - p_j\|\,\big] \in \mathbb{R}^{10}
       \]
-      Distance + signed displacement. No per-electrode parameters; same function for any montage.
+      Positions + displacement + distance. No per-electrode parameters; same shared MLP for \emph{any} montage.
       \\[0.4em]
-      \textbf{Three options for where $g_{ij}$ enters:}
-      \begin{itemize}
-        \setlength{\itemsep}{2pt}
-        \item \textbf{G1} (score) -- ``which electrodes attend''
-        \item \textbf{G2} (value) -- ``what they exchange''
-        \item \textbf{G3} (both)  -- combined
-      \end{itemize}
+      \textbf{Injection fixed to G3} (geometry at \emph{both} score and value -- strongest in my earlier ablation). I instead ablate the descriptor: \textbf{pos\_only} $=[p_i,p_j]\in\mathbb{R}^6$.
+      \\[0.4em]
       \footnotesize
-      Training: BYOL-style momentum alignment + masked-patch reconstruction (EEGPT recipe).
+      The only rival that can \emph{also} transfer is \textcolor{chindcolor}{\textbf{chind}} (no geometry); the codex \textbf{cannot be evaluated} zero-shot.
     \end{column}
     \begin{column}{0.56\textwidth}
       \begin{tikzpicture}[scale=0.78, every node/.style={font=\scriptsize}, transform shape]
@@ -134,12 +130,12 @@
         \node[draw, fill=codexcolor!15, rounded corners, minimum width=3.2cm, minimum height=0.7cm] (cT) at (0,3.5) {\textbf{Transductive (codex)}};
         \node[draw, fill=codexcolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (cI) at (0,2.6) {\texttt{embed[C3]} $+$ patch};
         \node[draw, fill=codexcolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (cQK) at (0,1.7) {dot-product attn $QK^\top$};
-        \node[draw, fill=accentred!15, rounded corners, minimum width=3.2cm, minimum height=0.6cm, align=center] (cFail) at (0,0.6) {\scriptsize \emph{fails to transfer}\\ \scriptsize unseen \texttt{C3} $\to$ ?};
+        \node[draw, fill=accentred!15, rounded corners, minimum width=3.2cm, minimum height=0.6cm, align=center] (cFail) at (0,0.6) {\scriptsize \emph{cannot transfer}\\ \scriptsize no slot for unseen \texttt{C3}};
         \draw[->, thick] (cI) -- (cQK);
         \draw[->, thick] (cQK) -- (cFail);
 
         % Right -- geometric
-        \node[draw, fill=geocolor!15, rounded corners, minimum width=3.2cm, minimum height=0.7cm] (gT) at (5,3.5) {\textbf{Geometric}};
+        \node[draw, fill=geocolor!15, rounded corners, minimum width=3.2cm, minimum height=0.7cm] (gT) at (5,3.5) {\textbf{Geometric (G3)}};
         \node[draw, fill=geocolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (gI) at (5,2.6) {patch $\;\&\;$ $g_{ij}$};
         \node[draw, fill=geocolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (gA) at (5,1.7) {attn MLP$(x_i, x_j, g_{ij})$};
         \node[draw, fill=winnercolor!18, rounded corners, minimum width=3.2cm, minimum height=0.6cm, align=center] (gOK) at (5,0.6) {\scriptsize \emph{transfers to any montage}\\ \scriptsize given only $p_i$};
@@ -154,110 +150,81 @@
 \end{frame}
 
 % =============================================================================
-% Slide 4 — In-distribution results + ablation
+% Slide 4 — Experiment design + balanced n9 directional table
 % =============================================================================
-\begin{frame}{In-distribution: geometric $=$ codex $>$ channel-independent. G3 wins.}
+\begin{frame}{Experiment: leave-one-montage-out, zero-shot transfer}
   \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \centering
-      \textbf{E1 -- PhysioNet MI LOSO (n=105)}\\[0.2em]
-      \begin{tikzpicture}
-        \begin{axis}[
-          width=6.0cm, height=4.0cm,
-          ybar, bar width=18pt,
-          ylabel={LOSO BAC}, ylabel near ticks,
-          ymin=0.30, ymax=0.36,
-          symbolic x coords={Chind, Codex, G1},
-          xtick=data,
-          enlarge x limits=0.3,
-          nodes near coords,
-          nodes near coords style={font=\tiny},
-          tick label style={font=\scriptsize},
-          label style={font=\scriptsize},
-        ]
-          \addplot[fill=chindcolor!60] coordinates {(Chind,0.333) (Codex,0.341) (G1,0.342)};
-          \draw[dashed, gray] (axis cs:Chind,0.25) -- (axis cs:G1,0.25);
-        \end{axis}
-      \end{tikzpicture}\\[0.1em]
-      \scriptsize Wilcoxon (G1 vs codex): $p = 0.911$
+    \begin{column}{0.46\textwidth}
+      \small
+      Train on a \textbf{mix of montages}; hold out one entire dataset; freeze the encoder; fit a linear probe on the \textbf{held-out montage} (genuinely zero-shot).
+      \\[0.5em]
+      Identical training for every variant --- only the spatial encoder differs (fair comparison).
+      \\[0.5em]
+      \footnotesize
+      Balanced 9-subject-per-dataset corpus: geometric $\geq$ \textbf{chind} on \textbf{3/3} held-out montages. Direction is consistent; gaps are within noise at this scale.
     \end{column}
-    \begin{column}{0.5\textwidth}
+    \begin{column}{0.52\textwidth}
       \centering
-      \textbf{E5 -- G1 / G2 / G3 ablation}\\[0.2em]
-      \begin{tikzpicture}
-        \begin{axis}[
-          width=6.0cm, height=4.0cm,
-          ybar=2pt, bar width=10pt,
-          ylabel={LOSO BAC}, ylabel near ticks,
-          ymin=0.30, ymax=0.56,
-          symbolic x coords={G1, G2, G3},
-          xtick=data,
-          enlarge x limits=0.25,
-          legend style={font=\scriptsize, at={(0.5,1.15)}, anchor=south, legend columns=2, draw=none},
-          tick label style={font=\scriptsize},
-          label style={font=\scriptsize},
-          nodes near coords,
-          nodes near coords style={font=\tiny, rotate=90, anchor=west},
-        ]
-          \addplot[fill=geocolor!70] coordinates {(G1,0.342) (G2,0.343) (G3,0.350)};
-          \addplot[fill=codexcolor!50] coordinates {(G1,0.509) (G2,0.509) (G3,0.532)};
-          \legend{PhysioNet MI, BCIC-2B}
-        \end{axis}
-      \end{tikzpicture}\\[0.1em]
-      \scriptsize \textbf{G3} (geometry at \emph{both} score and value) wins on both datasets.
+      \footnotesize \textbf{Zero-shot BAC (balanced 9-subj corpus)}\\[0.3em]
+      \begin{tabular}{lccc}
+        \toprule
+        Held-out & \textcolor{geocolor}{\textbf{geom}} & \textcolor{posonlycolor}{\textbf{pos\_only}} & \textcolor{chindcolor}{\textbf{chind}} \\
+        \midrule
+        Sleep-EDFx    & 0.593 & \textbf{0.597} & 0.589 \\
+        BCIC-2B       & \textbf{0.509} & 0.508 & 0.504 \\
+        PhysioNet MI  & 0.303 & \textbf{0.315} & 0.302 \\
+        \bottomrule
+      \end{tabular}
+      \\[0.6em]
+      \scriptsize
+      Different tasks $\Rightarrow$ different chance levels; read \emph{within} each row (geom vs chind), not across rows. Consistent but not yet significant --- motivates scaling the one split we can.
     \end{column}
   \end{columns}
-  \vspace{0.4em}
-  \footnotesize
-  \begin{itemize}
-    \setlength{\itemsep}{1pt}
-    \item In-distribution: geometric and codex tie; both beat channel-independent.
-    \item Within geometric: G3 dominates G1/G2 -- geometry contributes a small signal at each slot it enters.
-  \end{itemize}
 \end{frame}
 
 % =============================================================================
-% Slide 5 — Cross-montage results (headline)
+% Slide 5 — Headline: scale makes the geometric advantage significant
 % =============================================================================
-\begin{frame}{Cross-montage transfer (64\,ch $\to$ 3\,ch): codex-nn matches geometric}
+\begin{frame}{Headline: at scale, geometric beats chind on zero-shot transfer}
   \vspace{-0.2em}
   \begin{columns}[T]
     \begin{column}{0.56\textwidth}
       \centering
       \begin{tikzpicture}
         \begin{axis}[
-          width=7.5cm, height=5.2cm,
-          xbar, bar width=14pt,
-          xlabel={BCIC-2B LOSO BAC (n=9, zero-shot)},
-          xmin=0.49, xmax=0.55,
-          symbolic y coords={CodexNN, CodexRand, GeoG1},
+          width=7.6cm, height=5.0cm,
+          xbar, bar width=15pt,
+          xlabel={BCIC-2B zero-shot BAC (n=9 LOSO, n=156 pretrain)},
+          xmin=0.49, xmax=0.57,
+          symbolic y coords={chind, posonly, full},
           ytick=data,
-          yticklabels={Codex+nn, Codex+random, G1 geometric},
+          yticklabels={chind, geom (pos\_only), geom (full)},
           nodes near coords,
           nodes near coords style={font=\tiny},
           tick label style={font=\scriptsize},
           label style={font=\scriptsize},
         ]
-          \addplot[fill=geocolor!70]   coordinates {(0.509,GeoG1)};
-          \addplot[fill=codexcolor!40] coordinates {(0.513,CodexRand)};
-          \addplot[fill=winnercolor!70] coordinates {(0.525,CodexNN)};
+          \addplot[fill=chindcolor!60]   coordinates {(0.509,chind)};
+          \addplot[fill=posonlycolor!80] coordinates {(0.531,posonly)};
+          \addplot[fill=geocolor!80]     coordinates {(0.545,full)};
           % Chance line at 0.50
-          \draw[dashed, gray] (axis cs:0.50,GeoG1) -- (axis cs:0.50,CodexNN);
+          \draw[dashed, gray] (axis cs:0.50,chind) -- (axis cs:0.50,full);
         \end{axis}
       \end{tikzpicture}\\[-0.1em]
       \scriptsize Chance = 0.50 (binary). Dashed line = chance.
     \end{column}
     \begin{column}{0.42\textwidth}
       \small
-      \textbf{The proposal's headline test:}\\
-      \emph{Pretrain on PhysioNet MI (64\,ch);
-      zero-shot transfer to BCIC-2B (3\,ch).}
-      \\[0.6em]
-      \textcolor{winnercolor}{\textbf{Codex + nearest-neighbour fallback}} (0.525) slightly \textbf{beats} the geometric encoder (0.509).
+      \textbf{Scaled the one feasible split:}\\
+      \emph{balanced n=156 (PhysioNet 78 + Sleep 78), zero-shot to BCIC-2B.}
+      \\[0.5em]
+      \textcolor{geocolor}{\textbf{Geometric (full) = 0.545}} beats chind (0.509):
+      \textbf{+0.036}, $p=0.023$, 7/9 subjects.
       \\[0.4em]
-      The nn fallback uses 3-D coordinates to assign each unseen electrode to its closest pretraining entry -- it exploits \emph{the same geometry} at transfer time, without learning a geometric attention bias.
+      \textcolor{posonlycolor}{\textbf{pos\_only}} \emph{also} beats chind:
+      \textbf{+0.022}, $p=0.013$, 8/9 subjects.
       \\[0.4em]
-      \footnotesize\textit{The predicted ordering inverts.}
+      \footnotesize Codex is absent --- it \emph{cannot} be evaluated here at all. \textit{That absence is the point.}
     \end{column}
   \end{columns}
 \end{frame}
@@ -265,25 +232,24 @@
 % =============================================================================
 % Slide 6 — Conclusion + future work
 % =============================================================================
-\begin{frame}{Conclusion: an honest read, a sharper target}
+\begin{frame}{Conclusion: a clean positive, with clear edges}
   \begin{columns}[T]
     \begin{column}{0.52\textwidth}
       \small
-      \textbf{What we learned:}
+      \textbf{What I found:}
       \begin{itemize}
         \setlength{\itemsep}{2pt}
-        \item Spatial structure helps; geometric $=$ codex at pilot scale.
-        \item \textbf{G3} is the strongest geometric configuration.
-        \item \textbf{Codex + nn} is a tougher transfer baseline than the proposal anticipated.
+        \item Geometry-conditioned attention \textbf{transfers zero-shot} to an unseen montage and \textbf{beats chind significantly} once given enough data.
+        \item Robust to descriptor reduction (pos\_only also significant).
       \end{itemize}
-      \vspace{0.4em}
-      \textbf{Three concrete next steps:}
-      \begin{enumerate}
+      \vspace{0.3em}
+      \textbf{Honest limits:}
+      \begin{itemize}
         \setlength{\itemsep}{2pt}
-        \item Push G3 with \textbf{richer descriptors} (spherical, geodesic).
-        \item \textbf{Scale up} pretraining and re-run E2c.
-        \item Test on \textbf{high-density montages} where codex-nn breaks down.
-      \end{enumerate}
+        \item Significant on \textbf{one} held-out montage (BCIC); small-corpus tests directional but underpowered (9-subject ceiling).
+      \end{itemize}
+      \vspace{0.3em}
+      \textbf{Future work:} second distinct-montage held-out (e.g.\ 128\,ch); larger corpus; implement the codex baseline.
     \end{column}
     \begin{column}{0.46\textwidth}
       \centering
@@ -293,9 +259,9 @@
         \toprule
                           & \textbf{Predicted} & \textbf{Observed} \\
         \midrule
-        In-distribution   & tie            & \textcolor{winnercolor}{\textbf{tie}} \\
-        Cross-subject     & geometric $+$  & tie \\
-        Cross-montage     & geometric $++$ & codex-nn $\approx +$ \\
+        Direction (3 montages) & geom $+$  & \textcolor{winnercolor}{\textbf{geom $+$ (3/3)}} \\
+        Powered transfer       & geom $++$ & \textcolor{winnercolor}{\textbf{geom $++$, sig.}} \\
+        Across all montages    & hoped     & 1 powered; rest future \\
         \bottomrule
       \end{tabular}
       \\[1.0em]

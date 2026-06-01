@@ -108,18 +108,24 @@ to know which dataset to probe on.
 
 For each `(variant, split)` checkpoint:
 
-1. Load the held-out dataset using **all** its subjects (not just 9 —
-   probe evaluation should use the full population for stable BAC).
+1. Load the held-out dataset using **9 subjects** (first 9 per the locked
+   subject lists below). Equal-N across all three held-out datasets so the
+   three rows of the table are comparable to each other — BCIC-2B has only
+   9 subjects, so 9 is the shared bar (same rationale as the pretrain-side
+   Option A balancing). The whole held-out dataset was excluded from
+   pretraining, so all 9 are genuinely zero-shot. Tradeoff: 9-subject BAC
+   has wider variance than a full-population estimate, so report ±std and
+   don't over-read small cross-row gaps.
 2. Compute v2's fixed-scale `ch_pos` from the held-out dataset's
    `ch_names` (no per-montage normalization — this is critical for
    cross-montage consistency with what the encoder saw).
 3. Freeze the encoder; train a linear probe per LOSO fold.
 4. Report mean ± std BAC across folds.
-5. Per-dataset eval protocol:
-   - PhysioNet MI: LOSO (105 subjects)
-   - BCIC-2B: LOSO (9 subjects)
-   - Sleep-EDFx: within-subject night split (train on night 1, test on
-     night 2; aggregate over subjects with both nights)
+5. Per-dataset eval protocol (9 subjects each):
+   - PhysioNet MI: LOSO (subjects 1–9)
+   - BCIC-2B: LOSO (subjects 1–9, the full set)
+   - Sleep-EDFx: within-subject night split (subjects 0–8; train on night
+     1, test on night 2; aggregate over subjects with both nights)
 
 The probe code is `scripts/probe.py` — extend with a `--v2-checkpoint`
 flag (or wrap it) so it loads `BackboneV2` and recomputes `ch_pos` with

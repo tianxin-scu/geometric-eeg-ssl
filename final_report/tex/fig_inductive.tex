@@ -92,17 +92,17 @@
       {\small Patch $x_j$\\[-2pt]\scriptsize pos. $p_j \in \mathbb{R}^3$};
 
     % Row 2: g_ij computed directly from coordinates (no label step)
-    \node[purplebox, minimum width=4.0cm] (gR) at (8.5, -3)
-      {\small $g_{ij} \in \mathbb{R}^4$\\[-2pt]
-       \scriptsize $[\|p_i - p_j\|,\; p_i - p_j]$};
+    \node[purplebox, minimum width=4.4cm] (gR) at (8.5, -3)
+      {\small $g_{ij} \in \mathbb{R}^{10}$\\[-2pt]
+       \scriptsize $[\,p_i,\, p_j,\, p_i - p_j,\, \|p_i - p_j\|\,]$};
 
     \draw[fwd] (xiR.south) -- (gR.north);
     \draw[fwd] (xjR.south) -- (gR.north);
 
     % Row 3: geometric attention block
     \node[bluebox, minimum width=5.4cm, minimum height=1.0cm] (attR) at (8.5, -5.7)
-      {\small Geometric attention (G1)\\[-2pt]
-       \scriptsize $a^\top \mathrm{LeakyReLU}(W_a [W_q x_i \,\|\, W_k x_j \,\|\, W_g g_{ij}])$};
+      {\small Geometric attention (G3)\\[-2pt]
+       \scriptsize geometry biases both score and value via shared MLP$(g_{ij})$};
 
     % Three inputs into the attention: x_i, x_j, g_ij
     \draw[fwd] (xiR.west) to[out=180, in=180, looseness=0.5] (attR.west);

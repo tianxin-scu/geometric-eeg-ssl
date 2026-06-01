@@ -37,35 +37,51 @@ import torch.nn.functional as F
 
 
 GeomInjection = Literal["g1", "g2", "g3", "none"]
+Descriptor = Literal["full", "pos_only"]
 
-# Width of the v2 descriptor.
-G_DIM_V2 = 10
+# Descriptor variants and their input widths to the geometric MLPs.
+#   full     : [p_i, p_j, p_i - p_j, ||p_i - p_j||]  (R^10, v2 default)
+#   pos_only : [p_i, p_j]                            (R^6, absolute positions
+#              only -- drops displacement + distance, the terms v1 already had
+#              and that the trained b tended to collapse onto. Ablation: does
+#              absolute position alone carry the cross-montage signal?)
+_DESCRIPTOR_DIMS = {"full": 10, "pos_only": 6}
+
+# Width of the full v2 descriptor (kept for backward-compatible imports).
+G_DIM_V2 = _DESCRIPTOR_DIMS["full"]
 
 
 # ---------------------------------------------------------------------------
-# Geometric descriptor (v2: 10-D)
+# Geometric descriptor (v2)
 # ---------------------------------------------------------------------------
 
-def build_geometric_descriptor_v2(ch_pos: torch.Tensor) -> torch.Tensor:
-    """Build pairwise 10-D geometric descriptors from 3-D coordinates.
+def build_geometric_descriptor_v2(
+    ch_pos: torch.Tensor, descriptor: Descriptor = "full"
+) -> torch.Tensor:
+    """Build pairwise geometric descriptors from 3-D coordinates.
 
-    ``g_ij = [p_i, p_j, p_i - p_j, ||p_i - p_j||]``
+    ``full``     -> ``g_ij = [p_i, p_j, p_i - p_j, ||p_i - p_j||]`` (R^10)
+    ``pos_only`` -> ``g_ij = [p_i, p_j]``                          (R^6)
 
-    The first six dimensions break translation invariance: the same
-    relative displacement at the frontal vs occipital scalp produces
-    different ``g_ij`` values, so ``b`` can learn position-conditional
-    biases. Recovers v1 if the MLP's first-layer weights on dims 0..5
-    are zero.
+    The first six dimensions (``p_i, p_j``) break translation invariance:
+    the same relative displacement at the frontal vs occipital scalp
+    produces different ``g_ij`` values, so ``b`` can learn position-
+    conditional biases. ``pos_only`` keeps just those, dropping the
+    displacement + distance that v1 already used.
 
     Args:
         ch_pos: (M, 3) coordinates in a shared frame
             (see `src/v2/preprocess.py`). Either numpy or torch is fine.
+        descriptor: "full" (R^10) or "pos_only" (R^6).
 
     Returns:
-        g: (M, M, 10). g[i, j] = [p_i, p_j, p_i - p_j, ||p_i - p_j||].
-        Self-pairs g[i, i] have zero displacement and zero distance but
-        nonzero p_i / p_j components.
+        g: (M, M, D) where D = 10 for "full", 6 for "pos_only".
     """
+    if descriptor not in _DESCRIPTOR_DIMS:
+        raise ValueError(
+            f"descriptor={descriptor!r} invalid; expected one of "
+            f"{sorted(_DESCRIPTOR_DIMS)}"
+        )
     if not isinstance(ch_pos, torch.Tensor):
         ch_pos = torch.as_tensor(ch_pos, dtype=torch.float32)
     if ch_pos.dim() != 2 or ch_pos.shape[1] != 3:
@@ -73,10 +89,11 @@ def build_geometric_descriptor_v2(ch_pos: torch.Tensor) -> torch.Tensor:
     M = ch_pos.shape[0]
     p_i = ch_pos.unsqueeze(1).expand(M, M, 3)   # (M, M, 3)
     p_j = ch_pos.unsqueeze(0).expand(M, M, 3)   # (M, M, 3)
+    if descriptor == "pos_only":
+        return torch.cat([p_i, p_j], dim=-1)        # (M, M, 6)
     disp = p_i - p_j                            # (M, M, 3)
     dist = disp.norm(dim=-1, keepdim=True)      # (M, M, 1)
-    g = torch.cat([p_i, p_j, disp, dist], dim=-1)  # (M, M, 10)
-    return g
+    return torch.cat([p_i, p_j, disp, dist], dim=-1)  # (M, M, 10)
 
 
 # ---------------------------------------------------------------------------
@@ -103,18 +120,24 @@ class GeometricMultiheadAttentionV2(nn.Module):
         geometry_injection: GeomInjection = "g3",
         geom_mlp_hidden: int = 32,
         dropout: float = 0.0,
+        descriptor: Descriptor = "full",
     ):
         super().__init__()
         if d_model % n_heads != 0:
             raise ValueError(f"d_model={d_model} not divisible by n_heads={n_heads}")
         if geometry_injection not in ("g1", "g2", "g3", "none"):
             raise ValueError(f"geometry_injection={geometry_injection!r} invalid")
+        if descriptor not in _DESCRIPTOR_DIMS:
+            raise ValueError(f"descriptor={descriptor!r} invalid")
 
         self.d_model = d_model
         self.n_heads = n_heads
         self.d_head = d_model // n_heads
         self.geometry_injection = geometry_injection
+        self.descriptor = descriptor
         self.dropout_p = dropout
+
+        g_dim = _DESCRIPTOR_DIMS[descriptor]
 
         self.q_proj = nn.Linear(d_model, d_model, bias=True)
         self.k_proj = nn.Linear(d_model, d_model, bias=True)
@@ -123,7 +146,7 @@ class GeometricMultiheadAttentionV2(nn.Module):
 
         if geometry_injection in ("g1", "g3"):
             self.geom_bias_mlp = nn.Sequential(
-                nn.Linear(G_DIM_V2, geom_mlp_hidden),
+                nn.Linear(g_dim, geom_mlp_hidden),
                 nn.GELU(),
                 nn.Linear(geom_mlp_hidden, n_heads),
             )
@@ -132,7 +155,7 @@ class GeometricMultiheadAttentionV2(nn.Module):
 
         if geometry_injection in ("g2", "g3"):
             self.geom_value_mlp = nn.Sequential(
-                nn.Linear(G_DIM_V2, geom_mlp_hidden),
+                nn.Linear(g_dim, geom_mlp_hidden),
                 nn.GELU(),
                 nn.Linear(geom_mlp_hidden, d_model),
             )
@@ -250,6 +273,7 @@ class GeometricEncoderBlockV2(nn.Module):
         mlp_ratio: float = 4.0,
         dropout: float = 0.0,
         geom_mlp_hidden: int = 32,
+        descriptor: Descriptor = "full",
     ):
         super().__init__()
         self.norm1 = nn.LayerNorm(d_model)
@@ -259,6 +283,7 @@ class GeometricEncoderBlockV2(nn.Module):
             geometry_injection=geometry_injection,
             geom_mlp_hidden=geom_mlp_hidden,
             dropout=dropout,
+            descriptor=descriptor,
         )
         self.norm2 = nn.LayerNorm(d_model)
         mlp_hidden = int(d_model * mlp_ratio)
@@ -303,11 +328,13 @@ class GeometricSpatialEncoderV2(nn.Module):
         mlp_ratio: float = 4.0,
         dropout: float = 0.0,
         geom_mlp_hidden: int = 32,
+        descriptor: Descriptor = "full",
     ):
         super().__init__()
         self.d_model = d_model
         self.n_heads = n_heads
         self.geometry_injection = geometry_injection
+        self.descriptor = descriptor
 
         self.blocks = nn.ModuleList([
             GeometricEncoderBlockV2(
@@ -317,6 +344,7 @@ class GeometricSpatialEncoderV2(nn.Module):
                 mlp_ratio=mlp_ratio,
                 dropout=dropout,
                 geom_mlp_hidden=geom_mlp_hidden,
+                descriptor=descriptor,
             )
             for _ in range(n_layers)
         ])
@@ -335,7 +363,7 @@ class GeometricSpatialEncoderV2(nn.Module):
         # whether the encoder has a CLS token.
         ref = next(self.parameters())
         ch_pos = ch_pos.to(ref.device, dtype=ref.dtype)
-        g = build_geometric_descriptor_v2(ch_pos)  # (M, M, 10)
+        g = build_geometric_descriptor_v2(ch_pos, self.descriptor)  # (M, M, D)
 
         bias_tables: List[torch.Tensor] = []
         value_tables: List[torch.Tensor] = []

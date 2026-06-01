@@ -10,6 +10,8 @@ env/
 data/
 /datasets/
 runs/
+cache/
+mne_data/
 *.edf
 *.gdf
 *.fif

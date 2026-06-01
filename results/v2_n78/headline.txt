@@ -1,0 +1,21 @@
+v2 cross-montage zero-shot BAC (mean +/- std over LOSO/night folds)
+======================================================================
+held-out                 v2_geometric  v2_geometric_pos_only               v2_chind
+-----------------------------------------------------------------------------------
+Sleep-EDFx                       --                     --                     --  
+BCIC-2B                 0.545+/-0.027          0.531+/-0.013          0.509+/-0.016
+PhysioNet MI                     --                     --                     --  
+
+cells:
+  sleep_edfx    geometric            MISSING
+  sleep_edfx    geometric_pos_only   MISSING
+  sleep_edfx    chind                MISSING
+  bcic_2b       geometric            BAC=0.5454 +/-0.0267  n=9  (loso, geometric_bcic_2b.json)
+  bcic_2b       geometric_pos_only   BAC=0.5308 +/-0.0132  n=9  (loso, geometric_pos_only_bcic_2b.json)
+  bcic_2b       chind                BAC=0.5091 +/-0.0164  n=9  (loso, chind_bcic_2b.json)
+  physionet_mi  geometric            MISSING
+  physionet_mi  geometric_pos_only   MISSING
+  physionet_mi  chind                MISSING
+
+geometric beats chind on 1/1 rows.
+geometric_pos_only beats chind on 1/1 rows.

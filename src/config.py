@@ -69,6 +69,11 @@ class AblationConfig:
     # "none" = vanilla attention (channel-independent baseline, no geometry).
     geometry_injection: str = "G1"  # "G1" | "G2" | "G3" | "none"
 
+    # v2-only: which geometric descriptor the v2 spatial encoder feeds its
+    # MLPs. "full" = [p_i, p_j, p_i-p_j, ||p_i-p_j||] (R^10, v2 default);
+    # "pos_only" = [p_i, p_j] (R^6). Ignored by v1 (its descriptor is fixed).
+    geom_descriptor: str = "full"  # "full" | "pos_only"
+
     # O2: codex on/off. False = geometric encoder (default, headline).
     use_codex: bool = False
 
@@ -82,6 +87,8 @@ class AblationConfig:
     def __post_init__(self) -> None:
         if self.geometry_injection not in {"G1", "G2", "G3", "none"}:
             raise ValueError(f"geometry_injection must be G1/G2/G3/none: {self.geometry_injection}")
+        if self.geom_descriptor not in {"full", "pos_only"}:
+            raise ValueError(f"geom_descriptor must be full/pos_only: {self.geom_descriptor}")
         if not 0.0 <= self.mask_ratio < 1.0:
             raise ValueError(f"mask_ratio out of range: {self.mask_ratio}")
         if self.mask_scheme not in {"joint", "temporal", "spatial"}:

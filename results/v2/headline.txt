@@ -1,0 +1,21 @@
+v2 cross-montage zero-shot BAC (mean +/- std over LOSO/night folds)
+======================================================================
+held-out                 v2_geometric  v2_geometric_pos_only               v2_chind
+-----------------------------------------------------------------------------------
+Sleep-EDFx              0.593+/-0.022          0.597+/-0.022          0.589+/-0.020
+BCIC-2B                 0.509+/-0.026          0.508+/-0.019          0.504+/-0.024
+PhysioNet MI            0.303+/-0.048          0.315+/-0.044          0.302+/-0.047
+
+cells:
+  sleep_edfx    geometric            BAC=0.5931 +/-0.0216  n=9  (within_subject_night, geometric_sleep_edfx.json)
+  sleep_edfx    geometric_pos_only   BAC=0.5970 +/-0.0219  n=9  (within_subject_night, geometric_pos_only_sleep_edfx.json)
+  sleep_edfx    chind                BAC=0.5891 +/-0.0201  n=9  (within_subject_night, chind_sleep_edfx.json)
+  bcic_2b       geometric            BAC=0.5088 +/-0.0255  n=9  (loso, geometric_bcic_2b.json)
+  bcic_2b       geometric_pos_only   BAC=0.5078 +/-0.0195  n=9  (loso, geometric_pos_only_bcic_2b.json)
+  bcic_2b       chind                BAC=0.5045 +/-0.0236  n=9  (loso, chind_bcic_2b.json)
+  physionet_mi  geometric            BAC=0.3033 +/-0.0483  n=9  (loso, geometric_physionet_mi.json)
+  physionet_mi  geometric_pos_only   BAC=0.3155 +/-0.0438  n=9  (loso, geometric_pos_only_physionet_mi.json)
+  physionet_mi  chind                BAC=0.3022 +/-0.0471  n=9  (loso, chind_physionet_mi.json)
+
+geometric beats chind on 3/3 rows.
+geometric_pos_only beats chind on 3/3 rows.

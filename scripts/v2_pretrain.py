@@ -169,6 +169,7 @@ def _build_model(cfg: Config, variant: str) -> PretrainModelV2:
         geometry_injection=geom,
         geom_mlp_hidden=arch.geom_mlp_hidden,
         dropout=arch.dropout,
+        descriptor=abl.geom_descriptor,
     )
     backbone = BackboneV2(spatial, arch=arch)
     return PretrainModelV2(backbone, lambda_R=cfg.train.lambda_R)
