@@ -56,12 +56,12 @@
   \begin{columns}[T]
     \begin{column}{0.42\textwidth}
       \small
-      EEG drifts on \textbf{three geometric axes}:
+      EEG varies on \textbf{three geometric axes}:
       \begin{itemize}
         \setlength{\itemsep}{2pt}
-        \item \textbf{Session} — cap shifts day to day.
-        \item \textbf{Subject} — head sizes differ; \texttt{C3} is not the same point.
-        \item \textbf{Montage} — 2 to 256 electrodes in different layouts.
+        \item \textbf{Session} — cap shifts day to day. \emph{(motivates)}
+        \item \textbf{Subject} — head sizes differ. \emph{(motivates)}
+        \item \textbf{Montage} — 2 to 256 electrodes in different layouts. \textbf{$\leftarrow$ what I test}
       \end{itemize}
       \vspace{0.4em}
       \footnotesize
@@ -72,34 +72,67 @@
       \\[0.3em]
       Neither uses scalp geometry as an \emph{input}.
     \end{column}
-    \begin{column}{0.56\textwidth}
-      \begin{tikzpicture}[scale=0.85, every node/.style={font=\scriptsize}]
-        % Three heads side by side showing the three drift axes
-        \foreach \x/\lbl/\sub in {0/Session/{day 1 vs day 2}, 3.6/Subject/{small vs large head}, 7.2/Montage/{64 ch vs 3 ch}} {
-          \draw[thick] (\x,0) circle (1.2);
-          \node at (\x,-1.6) {\textbf{\lbl}};
-          \node at (\x,-1.95) {\sub};
+    \begin{column}{0.54\textwidth}
+      \centering
+      % --- Montage figure ---
+      \begin{tikzpicture}[scale=0.78, every node/.style={font=\scriptsize}]
+        % Dense: 64-ch (train)
+        \draw[thick] (0,0) circle (1.1);
+        \foreach \a in {0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330} {
+          \fill[geocolor] ({0.85*cos(\a)}, {0.85*sin(\a)}) circle (0.07);
+          \fill[geocolor] ({0.50*cos(\a+15)}, {0.50*sin(\a+15)}) circle (0.055);
         }
-        % Session: shifted electrodes
-        \foreach \a in {30, 90, 150, 210, 270, 330} {
-          \fill[geocolor]   ({0  + 1.0*cos(\a)}, {0 + 1.0*sin(\a)}) circle (0.07);
-          \fill[accentred!70] ({0  + 1.0*cos(\a+12)}, {0 + 1.0*sin(\a+12)}) circle (0.07);
-        }
-        % Subject: small head outline vs large; same labels, different scale
-        \draw[thick, dashed] (3.6,0) circle (0.85);
-        \foreach \a in {0, 60, 120, 180, 240, 300} {
-          \fill[geocolor] ({3.6 + 1.0*cos(\a)}, {0 + 1.0*sin(\a)}) circle (0.07);
-          \fill[codexcolor] ({3.6 + 0.7*cos(\a)}, {0 + 0.7*sin(\a)}) circle (0.07);
-        }
-        % Montage: dense vs sparse
-        \foreach \a in {0, 30, 60, ..., 330} {
-          \fill[geocolor] ({7.2 + 1.0*cos(\a)}, {0 + 1.0*sin(\a)}) circle (0.06);
-        }
-        \fill[accentred] (6.6, 0.4) circle (0.10);
-        \fill[accentred] (7.2, 0.4) circle (0.10);
-        \fill[accentred] (7.8, 0.4) circle (0.10);
-        % Caption
-        \node[align=center, font=\footnotesize\itshape] at (3.6,-2.7) {The geometry has changed --- per-electrode parameters cannot adapt.};
+        \node[below] at (0,-1.35) {\textbf{train:} 64 ch};
+        % Arrow
+        \draw[->, very thick, gray] (1.4,0) -- (2.2,0);
+        % Sparse: 3-ch (test)
+        \draw[thick] (3.6,0) circle (1.1);
+        \fill[accentred] (2.9, 0) circle (0.11);
+        \fill[accentred] (3.6, 0) circle (0.11);
+        \fill[accentred] (4.3, 0) circle (0.11);
+        \node[below] at (3.6,-1.35) {\textbf{test:} 3 ch (unseen)};
+      \end{tikzpicture}
+
+      \vspace{0.3em}
+
+      % --- Flow graph ---
+      \begin{tikzpicture}[
+          >=Stealth,
+          every node/.style={font=\scriptsize},
+          box/.style={draw, rounded corners, minimum height=0.58cm, align=center, inner sep=3pt},
+          scale=0.84, transform shape,
+        ]
+        % Raw EEG input (shared by both paths)
+        \node[box, fill=gray!10, minimum width=2.2cm] (eeg) at (0.45, 3.4)
+          {EEG signal\\$(B,C,T)$};
+        % Patch projection (shared)
+        \node[box, fill=gray!16, minimum width=2.2cm] (proj) at (0.45, 2.0)
+          {patch proj\\$(B,C,D)$};
+        % Ch idx lookup (codex path only)
+        \node[box, fill=codexcolor!12, minimum width=2.2cm] (idx) at (3.0, 3.4)
+          {Ch.\ idx look-up\\$(C,D)$};
+        % Plus node (codex path only)
+        \node[draw, circle, fill=codexcolor!20, minimum size=0.50cm, inner sep=1pt]
+          (plus) at (3.0, 2.0) {$+$};
+        % Model block
+        \node[box, fill=gray!18, minimum width=2.0cm] (model) at (1.65, 0.3)
+          {Model};
+        % Output
+        \node (out) at (1.65, -0.65) {output};
+        % Shared: EEG → proj
+        \draw[->, semithick] (eeg.south) -- (proj.north);
+        % ChInd: proj → Model directly (gray)
+        \draw[->, thick, chindcolor]
+          (proj.south) -- (model.north);
+        % Codex: proj → + , idx → + → Model (purple)
+        \draw[->, thick, codexcolor]
+          (proj.east) to[out=0, in=180] (plus);
+        \draw[->, thick, codexcolor]
+          (idx.south) -- (plus.north);
+        \draw[->, thick, codexcolor]
+          (plus.south) -- (model.north);
+        % Output arrow
+        \draw[->, semithick] (model.south) -- (out.north);
       \end{tikzpicture}
     \end{column}
   \end{columns}
@@ -113,162 +146,144 @@
   \begin{columns}[T]
     \begin{column}{0.42\textwidth}
       \small
-      \textbf{Geometric descriptor.}
       \[
-        g_{ij} = \big[\,p_i,\; p_j,\; p_i - p_j,\; \|p_i - p_j\|\,\big] \in \mathbb{R}^{10}
+        g_{ij} = \bigl[\,p_i,\;\; p_j,\;\; p_i - p_j,\;\; \|p_i - p_j\|\,\bigr] \in \mathbb{R}^{10}
       \]
-      Positions + displacement + distance. No per-electrode parameters; same shared MLP for \emph{any} montage.
-      \\[0.4em]
-      \textbf{Injection fixed to G3} (geometry at \emph{both} score and value -- strongest in my earlier ablation). I instead ablate the descriptor: \textbf{pos\_only} $=[p_i,p_j]\in\mathbb{R}^6$.
-      \\[0.4em]
+      \vspace{0.1em}
       \footnotesize
-      The only rival that can \emph{also} transfer is \textcolor{chindcolor}{\textbf{chind}} (no geometry); the codex \textbf{cannot be evaluated} zero-shot.
+      \textbf{Example:} $g_{\texttt{C3}\to\texttt{Cz}}$ (normalized coords)
+      \\[0.3em]
+      \renewcommand{\arraystretch}{1.25}
+      \begin{tabular}{@{}llr@{}}
+        \toprule
+        $p_i$ (\texttt{C3})    & $(x,y,z)$ & $(-0.71,\,0.00,\,0.59)$ \\
+        $p_j$ (\texttt{Cz})    & $(x,y,z)$ & $(\phantom{-}0.00,\,0.00,\,0.95)$ \\
+        $p_i - p_j$            & disp.     & $(-0.71,\,0.00,\,-0.36)$ \\
+        $\|p_i - p_j\|$        & dist.     & $0.80$ \\
+        \bottomrule
+      \end{tabular}
+      \\[0.4em]
+      \scriptsize $3+3+3+1 = 10$ dims. \textbf{pos\_only} ablation keeps just $[p_i,p_j]\in\mathbb{R}^6$.
     \end{column}
     \begin{column}{0.56\textwidth}
-      \begin{tikzpicture}[scale=0.78, every node/.style={font=\scriptsize}, transform shape]
-        % Left -- transductive
-        \node[draw, fill=codexcolor!15, rounded corners, minimum width=3.2cm, minimum height=0.7cm] (cT) at (0,3.5) {\textbf{Transductive (codex)}};
-        \node[draw, fill=codexcolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (cI) at (0,2.6) {\texttt{embed[C3]} $+$ patch};
-        \node[draw, fill=codexcolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (cQK) at (0,1.7) {dot-product attn $QK^\top$};
-        \node[draw, fill=accentred!15, rounded corners, minimum width=3.2cm, minimum height=0.6cm, align=center] (cFail) at (0,0.6) {\scriptsize \emph{cannot transfer}\\ \scriptsize no slot for unseen \texttt{C3}};
-        \draw[->, thick] (cI) -- (cQK);
-        \draw[->, thick] (cQK) -- (cFail);
+      \centering
+      \begin{tikzpicture}[
+          >=Stealth,
+          every node/.style={font=\scriptsize},
+          box/.style={draw, rounded corners, minimum height=0.5cm, minimum width=1.1cm, align=center, inner sep=3pt},
+          op/.style={draw, circle, fill=geocolor!18, minimum size=0.5cm, inner sep=0pt},
+          mlp/.style={draw, rounded corners, fill=geocolor!25, minimum height=0.5cm, inner sep=3pt},
+          scale=1.0, transform shape,
+        ]
+        % --- main attention chain (x = 0) ---
+        \node[box, fill=gray!10]        (patch) at (0, 4.4) {patch};
+        \node[box, fill=geocolor!12]    (qkv)   at (0, 3.5) {$q,\,k,\,v$};
+        \node[box]                      (att)   at (0, 2.6) {dot-prod};
+        \node[op]                       (plus)  at (0, 1.8) {$+$};
+        \node[box]                      (soft)  at (0, 1.0) {softmax};
+        \node[op]                       (dot)   at (0, 0.0) {$\cdot$};
+        \node[box, fill=gray!10]        (out)   at (0,-0.9) {output};
 
-        % Right -- geometric
-        \node[draw, fill=geocolor!15, rounded corners, minimum width=3.2cm, minimum height=0.7cm] (gT) at (5,3.5) {\textbf{Geometric (G3)}};
-        \node[draw, fill=geocolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (gI) at (5,2.6) {patch $\;\&\;$ $g_{ij}$};
-        \node[draw, fill=geocolor!8, rounded corners, minimum width=3.2cm, minimum height=0.6cm] (gA) at (5,1.7) {attn MLP$(x_i, x_j, g_{ij})$};
-        \node[draw, fill=winnercolor!18, rounded corners, minimum width=3.2cm, minimum height=0.6cm, align=center] (gOK) at (5,0.6) {\scriptsize \emph{transfers to any montage}\\ \scriptsize given only $p_i$};
-        \draw[->, thick] (gI) -- (gA);
-        \draw[->, thick] (gA) -- (gOK);
+        % --- geometry side (right) ---
+        \node[box, fill=geocolor!12]    (gij)   at (2.7, 3.95) {$g_{ij}$};
+        \node[mlp]                      (bmlp)  at (2.7, 2.6)  {bias MLP};
+        \node[mlp]                      (wmlp)  at (2.7, 1.0)  {value MLP};
+        \node[op]                       (vsum)  at (1.35, 0.0) {$+$};
 
-        % Training pipeline ribbon
-        \node[font=\scriptsize] at (2.5,-0.5) {raw EEG $\to$ patch $\to$ spatial attn $\to$ temporal $\to$ momentum target (EMA)};
+        % --- main chain arrows ---
+        \draw[->] (patch) -- (qkv);
+        \draw[->] (qkv) -- (att) node[midway, right, font=\tiny] {$q,k$};
+        \draw[->] (att) -- (plus);
+        \draw[->] (plus) -- (soft);
+        \draw[->] (soft) -- (dot) node[midway, left, font=\tiny] {$a_{ij}$};
+        \draw[->] (vsum) -- (dot);
+        \draw[->] (dot) -- (out);
+
+        % --- geometry: g_ij feeds BOTH MLPs (parallel) ---
+        \draw[->, geocolor] (gij) -- (bmlp);
+        \draw[->, geocolor] (gij.east) to[out=-90, in=90] (wmlp.east);
+        \draw[->, geocolor] (bmlp) -- (plus) node[midway, above, font=\tiny] {$b(g_{ij})$};
+        \draw[->, geocolor] (wmlp) -- (vsum) node[midway, above, font=\tiny] {$w(g_{ij})$};
+        % v from the q,k,v box into the value sum
+        \draw[->] (qkv.east) to[out=0, in=90] (1.35, 0.25) -- (vsum)
+          node[pos=0.18, above, font=\tiny] {$v$};
       \end{tikzpicture}
     \end{column}
   \end{columns}
 \end{frame}
 
 % =============================================================================
-% Slide 4 — Experiment design + balanced n9 directional table
-% =============================================================================
-\begin{frame}{Experiment: leave-one-montage-out, zero-shot transfer}
-  \begin{columns}[T]
-    \begin{column}{0.46\textwidth}
-      \small
-      Train on a \textbf{mix of montages}; hold out one entire dataset; freeze the encoder; fit a linear probe on the \textbf{held-out montage} (genuinely zero-shot).
-      \\[0.5em]
-      Identical training for every variant --- only the spatial encoder differs (fair comparison).
-      \\[0.5em]
-      \footnotesize
-      Balanced 9-subject-per-dataset corpus: geometric $\geq$ \textbf{chind} on \textbf{3/3} held-out montages. Direction is consistent; gaps are within noise at this scale.
-    \end{column}
-    \begin{column}{0.52\textwidth}
-      \centering
-      \footnotesize \textbf{Zero-shot BAC (balanced 9-subj corpus)}\\[0.3em]
-      \begin{tabular}{lccc}
-        \toprule
-        Held-out & \textcolor{geocolor}{\textbf{geom}} & \textcolor{posonlycolor}{\textbf{pos\_only}} & \textcolor{chindcolor}{\textbf{chind}} \\
-        \midrule
-        Sleep-EDFx    & 0.593 & \textbf{0.597} & 0.589 \\
-        BCIC-2B       & \textbf{0.509} & 0.508 & 0.504 \\
-        PhysioNet MI  & 0.303 & \textbf{0.315} & 0.302 \\
-        \bottomrule
-      \end{tabular}
-      \\[0.6em]
-      \scriptsize
-      Different tasks $\Rightarrow$ different chance levels; read \emph{within} each row (geom vs chind), not across rows. Consistent but not yet significant --- motivates scaling the one split we can.
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% =============================================================================
-% Slide 5 — Headline: scale makes the geometric advantage significant
+% Slide 4 — Headline: scale makes the geometric advantage significant
 % =============================================================================
 \begin{frame}{Headline: at scale, geometric beats chind on zero-shot transfer}
-  \vspace{-0.2em}
-  \begin{columns}[T]
-    \begin{column}{0.56\textwidth}
-      \centering
-      \begin{tikzpicture}
-        \begin{axis}[
-          width=7.6cm, height=5.0cm,
-          xbar, bar width=15pt,
-          xlabel={BCIC-2B zero-shot BAC (n=9 LOSO, n=156 pretrain)},
-          xmin=0.49, xmax=0.57,
-          symbolic y coords={chind, posonly, full},
-          ytick=data,
-          yticklabels={chind, geom (pos\_only), geom (full)},
-          nodes near coords,
-          nodes near coords style={font=\tiny},
-          tick label style={font=\scriptsize},
-          label style={font=\scriptsize},
-        ]
-          \addplot[fill=chindcolor!60]   coordinates {(0.509,chind)};
-          \addplot[fill=posonlycolor!80] coordinates {(0.531,posonly)};
-          \addplot[fill=geocolor!80]     coordinates {(0.545,full)};
-          % Chance line at 0.50
-          \draw[dashed, gray] (axis cs:0.50,chind) -- (axis cs:0.50,full);
-        \end{axis}
-      \end{tikzpicture}\\[-0.1em]
-      \scriptsize Chance = 0.50 (binary). Dashed line = chance.
-    \end{column}
-    \begin{column}{0.42\textwidth}
-      \small
-      \textbf{Scaled the one feasible split:}\\
-      \emph{balanced n=156 (PhysioNet 78 + Sleep 78), zero-shot to BCIC-2B.}
-      \\[0.5em]
-      \textcolor{geocolor}{\textbf{Geometric (full) = 0.545}} beats chind (0.509):
-      \textbf{+0.036}, $p=0.023$, 7/9 subjects.
-      \\[0.4em]
-      \textcolor{posonlycolor}{\textbf{pos\_only}} \emph{also} beats chind:
-      \textbf{+0.022}, $p=0.013$, 8/9 subjects.
-      \\[0.4em]
-      \footnotesize Codex is absent --- it \emph{cannot} be evaluated here at all. \textit{That absence is the point.}
-    \end{column}
-  \end{columns}
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      width=10cm, height=6.2cm,
+      ybar, bar width=42pt,
+      enlarge x limits=0.28,
+      ymin=0.49, ymax=0.56,
+      ylabel={Zero-shot BAC (BCIC-2B)},
+      symbolic x coords={chind, pos\_only, geom},
+      xtick=data,
+      nodes near coords,
+      nodes near coords style={font=\small},
+      tick label style={font=\normalsize},
+      label style={font=\normalsize},
+    ]
+      \addplot[fill=chindcolor!70,   bar shift=0pt] coordinates {(chind,0.509)};
+      \addplot[fill=posonlycolor!85, bar shift=0pt] coordinates {(pos\_only,0.531)};
+      \addplot[fill=geocolor!85,     bar shift=0pt] coordinates {(geom,0.545)};
+    \end{axis}
+  \end{tikzpicture}
+  \\[0.4em]
+  78 PhysioNet $+$ 78 Sleep-EDFx pretrain \quad$\to$\quad zero-shot to BCIC-2B
 \end{frame}
 
 % =============================================================================
-% Slide 6 — Conclusion + future work
+% Slide 5 — Conclusion + future work
 % =============================================================================
 \begin{frame}{Conclusion: a clean positive, with clear edges}
   \begin{columns}[T]
-    \begin{column}{0.52\textwidth}
+    \begin{column}{0.9\textwidth}
       \small
       \textbf{What I found:}
       \begin{itemize}
-        \setlength{\itemsep}{2pt}
+        \setlength{\itemsep}{3pt}
         \item Geometry-conditioned attention \textbf{transfers zero-shot} to an unseen montage and \textbf{beats chind significantly} once given enough data.
         \item Robust to descriptor reduction (pos\_only also significant).
       \end{itemize}
-      \vspace{0.3em}
+      \vspace{0.5em}
       \textbf{Honest limits:}
       \begin{itemize}
-        \setlength{\itemsep}{2pt}
+        \setlength{\itemsep}{3pt}
         \item Significant on \textbf{one} held-out montage (BCIC); small-corpus tests directional but underpowered (9-subject ceiling).
       \end{itemize}
-      \vspace{0.3em}
+      \vspace{0.5em}
       \textbf{Future work:} second distinct-montage held-out (e.g.\ 128\,ch); larger corpus; implement the codex baseline.
     \end{column}
-    \begin{column}{0.46\textwidth}
-      \centering
-      \footnotesize
-      \textbf{Predicted vs.\ observed}\\[0.3em]
-      \begin{tabular}{lcc}
-        \toprule
-                          & \textbf{Predicted} & \textbf{Observed} \\
-        \midrule
-        Direction (3 montages) & geom $+$  & \textcolor{winnercolor}{\textbf{geom $+$ (3/3)}} \\
-        Powered transfer       & geom $++$ & \textcolor{winnercolor}{\textbf{geom $++$, sig.}} \\
-        Across all montages    & hoped     & 1 powered; rest future \\
-        \bottomrule
-      \end{tabular}
-      \\[1.0em]
-      \scriptsize
-      \texttt{github.com/tianxin-scu/}\\\texttt{geometric-eeg-ssl}
-    \end{column}
   \end{columns}
+\end{frame}
+
+% =============================================================================
+% Slide 6 — Predicted vs. observed scorecard
+% =============================================================================
+\begin{frame}{Did the results match the proposal's predictions?}
+  \vspace{0.5em}
+  \centering
+  \textbf{Predicted vs.\ observed}\\[0.8em]
+  \begin{tabular}{lcc}
+    \toprule
+                      & \textbf{Predicted} & \textbf{Observed} \\
+    \midrule
+    Direction (3 montages) & geom $+$  & \textcolor{winnercolor}{\textbf{geom $+$ (3/3)}} \\[0.3em]
+    Powered transfer       & geom $++$ & \textcolor{winnercolor}{\textbf{geom $++$, sig.}} \\[0.3em]
+    Across all montages    & hoped     & 1 powered; rest future \\
+    \bottomrule
+  \end{tabular}
+  \\[1.5em]
+  \footnotesize
+  \texttt{github.com/tianxin-scu/geometric-eeg-ssl}
 \end{frame}
 
 % =============================================================================
