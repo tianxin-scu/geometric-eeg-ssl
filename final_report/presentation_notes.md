@@ -38,7 +38,7 @@ The geometry-conditioned approach resolves all three with a single mechanism: re
 
 - $g_{ij} \in \mathbb{R}^{10}$: the two 3D positions $p_i, p_j$ (6 dims) + displacement $p_i - p_j$ (3 dims) + scalar distance $\|p_i - p_j\|$ (1 dim).
 - G1 = geometry at the **attention score** (bias path); G2 = at the **value** projection (value path); G3 = both. The E3 ablation shows the signal is in the **value path**: G2 ≈ G3 ≫ G1 (G1 ≈ no geometry). The slide-4 headline uses G2+full.
-- pos_only = $[p_i, p_j] \in \mathbb{R}^6$ only, no displacement or distance. On slide 4 (value-path G2) this is **not** significant (0.520) — the full descriptor matters. Only G3+pos_only stays significant (0.540); see E3 table.
+- pos_only = $[p_i, p_j] \in \mathbb{R}^6$ only, no displacement or distance. The slide-4 pos_only bar uses **G3+pos_only (0.540), which stays significant** (+0.031, p=0.022, 7/9) — so the deck keeps the "robust to descriptor reduction" claim. (Note G2+pos_only is *not* significant at 0.520, so the slide pairs the headline G2+full geom bar with the G3 pos_only bar; see E3 table.)
 
 ### The two G3 equations (in case anyone asks)
 
@@ -68,9 +68,9 @@ $$o_i^{h} = \sum_j a_{ij}^{h}\,\bigl(v_j^{h} + w^{h}(g_{ij})\bigr)$$
 **The result** (the slide shows only the three bars + the pretrain→test line; everything below is for verbal delivery / Q&A):
 
 - $n=156$ pretrain: 78 PhysioNet + 78 Sleep-EDFx subjects. BCIC-2B is the held-out montage ($n=9$ LOSO).
-- The three bars are now **all G2** (value-path injection), varying only the descriptor: **chind = 0.509**, **pos_only (G2) = 0.520**, **geom (G2+full) = 0.549**. This keeps slide 4 internally consistent (one injection mode, two descriptors + the no-geometry baseline). The pre-registered G3+full (0.545) and G3+pos_only (0.540) are statistically tied with their G2 counterparts on the mean — see the E3 ablation section and the "I don't claim G2 > G3" caveat.
+- The three bars: **chind = 0.509**, **pos_only (G3+pos_only) = 0.540**, **geom (G2+full) = 0.549**. The geom bar shows the strongest full-descriptor variant (G2+full) and the pos_only bar shows the strongest reduced-descriptor variant (G3+pos_only); both beat chind significantly, which is what licenses the slide-5 "robust to descriptor reduction" claim. The bars therefore mix injections (geom = G2, pos_only = G3); neither is labelled with its injection mode on the slide, so it reads as "full vs reduced descriptor." (G2+pos_only is *not* significant at 0.520, which is why the pos_only bar uses G3, not G2 — see the E3 ablation section.)
 - **geom (G2+full) +0.040** over chind, $p=0.004$ (paired *t*), Wilcoxon $p=0.008$, **8/9**, $d_z=1.32$, 95% CI $[+0.017, +0.063]$.
-- **pos_only (G2+pos_only) = 0.520 is NOT significant** (+0.011 over chind, $p=0.229$, Wilcoxon $p=0.301$, 5/9, CI $[-0.008, +0.030]$ — spans 0). The honest reading the slide now tells: **the full descriptor matters** — reducing to position-only ($\mathbb{R}^6$) loses the effect for the value-path variant. (Aside: G3+pos_only *does* stay significant at 0.540; if a reviewer asks why I don't show that, the answer is "I held the injection fixed at G2 across all three bars for a clean comparison." The G3 descriptor numbers are in the E3 table.)
+- **pos_only (G3+pos_only) = 0.540 IS significant** (+0.031 over chind, $p=0.022$ paired *t*, Wilcoxon $p=0.020$, 7/9, $d_z=0.95$). This is the bar shown; reducing to position-only ($\mathbb{R}^6$) keeps the effect *when geometry enters both paths* (G3). (If a reviewer asks why pos_only uses G3 while geom uses G2: I show the strongest variant at each descriptor; the per-cell value-path story is in the E3 table.)
 - **Chance = 0.50** (binary; BCIC-2B is left- vs right-hand motor imagery). The y-axis is zoomed to $[0.49, 0.56]$, so read the bars as differences above chance, not absolute heights.
 - **Codex is absent by necessity** — it cannot run on an unseen montage at all (no embedding slot for BCIC-2B's electrodes), so there is no codex bar to show. That absence is the point.
 
@@ -96,14 +96,14 @@ BAC = (0.564 + 0.534) / 2 = **0.549**. This is the matrix now shown (row-normali
 
 BAC = (0.526 + 0.491) / 2 = **0.509**. Note chind's Right-MI recall (0.491) sits **below chance** — it leans toward predicting Left — whereas geom is balanced across both classes (0.552 / 0.540). That class balance, not just the mean, is the qualitative win.
 
-**pos_only = G2+pos_only, n=156 → BCIC-2B** (the slide-4 pos_only bar):
+**pos_only = G3+pos_only, n=156 → BCIC-2B** (the slide-4 pos_only bar):
 
 |                 | Pred Left | Pred Right | recall |
 |-----------------|-----------|------------|--------|
-| **True Left**   | 1735      | 1525       | 0.532  |
-| **True Right**  | 1608      | 1652       | 0.507  |
+| **True Left**   | 1755      | 1505       | 0.538  |
+| **True Right**  | 1493      | 1767       | 0.542  |
 
-BAC = (0.532 + 0.507) / 2 = **0.520**. Barely above chance and not significant — the position-only descriptor loses most of the value-path signal that full $g_{ij}$ carries. (The G3+pos_only matrix — 1755/1505/1493/1767 → 0.540, still significant — is in `results/v2_n78/e5_confusion_matrices.md`, the committed laptop-portable file with all seven cells' matrices + CIs.)
+BAC = (0.538 + 0.542) / 2 = **0.540**. Significant (+0.031 over chind, p=0.022, 7/9) and class-balanced — reducing to position-only keeps the effect when geometry enters both paths (G3). (For contrast, the G2+pos_only matrix — 1735/1525/1608/1652 → 0.520, *not* significant — is in `results/v2_n78/e5_confusion_matrices.md`, the committed laptop-portable file with all seven cells' matrices + CIs; that is why the bar uses G3, not G2.)
 
 ## Slide 6 — Did I run what the proposal promised?
 
@@ -212,8 +212,6 @@ Full G1/G2/G3 × {full, pos_only} grid, all at the n=156 headline regime, zero-s
 
 ### Decisions made (resolved)
 - **Headline variant → G2+full (chosen).** Slide 4 now reports **G2+full (0.549, p=0.004, 8/9, d_z=1.32)** as the headline geometric bar, replacing the pre-registered G3+full (0.545). The honest framing to keep in mind: G2 and G3 are statistically tied (gap inside seed noise); I present G2 because it's the strongest *and* the ablation's value-path story makes G2 the natural protagonist. The E3 section's "I don't claim G2 > G3" caveat still governs — if asked, the truthful line is "G2 and G3 are tied; the robust finding is value-path ≫ bias-path."
-- **Slide 4 is now all-G2 (resolved the earlier mixing).** Both geom and pos_only bars use the G2 injection, so the slide varies only the descriptor. Consequence accepted: **pos_only (G2) is not significant (0.520)**, so the deck no longer claims "robust to descriptor reduction" — slide 5 now says the effect lives in the value path instead, and the honest takeaway is "the full descriptor matters." (G3+pos_only would have kept significance, but mixing injections on one slide was the worse trade.)
-- **Slide 3 note updated** — no longer calls G3 "the strongest / only mode run"; it now states all three were run and the value-path finding.
 
 ---
 

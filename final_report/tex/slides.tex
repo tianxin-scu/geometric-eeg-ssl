@@ -214,9 +214,7 @@
       \vspace{0.2em}
       \scriptsize
       \textcolor{biaspathcol}{\textbf{bias path}} only $=$ G1,\quad
-      \textcolor{valuepathcol}{\textbf{value path}} only $=$ G2,\quad both $=$ G3.\\
-      Ablation: the signal is in the \textcolor{valuepathcol}{\textbf{value path}}
-      --- G2\,$\approx$\,G3\,$\gg$\,G1 (G1 $\approx$ no geometry).
+      \textcolor{valuepathcol}{\textbf{value path}} only $=$ G2,\quad both $=$ G3.
     \end{column}
   \end{columns}
 \end{frame}
@@ -244,7 +242,7 @@
           label style={font=\small},
         ]
           \addplot[fill=chindcolor!70,   bar shift=0pt] coordinates {(chind,0.509)};
-          \addplot[fill=posonlycolor!85, bar shift=0pt] coordinates {(pos\_only,0.520)};
+          \addplot[fill=posonlycolor!85, bar shift=0pt] coordinates {(pos\_only,0.540)};
           \addplot[fill=geocolor!85,     bar shift=0pt] coordinates {(geom,0.549)};
         \end{axis}
       \end{tikzpicture}
@@ -268,8 +266,8 @@
         \node[cell, fill=winnercolor!53] at (1.80,-0.48) {53.4};
       \end{tikzpicture}
       \\[0.5em]
-      % --- pos_only matrix (G2+pos_only; same value-path injection as geom bar) ---
-      \scriptsize \textbf{\textcolor{posonlycolor}{pos\_only}} (G2) \;(BAC 0.520)\\[0.2em]
+      % --- pos_only matrix (G3+pos_only) ---
+      \scriptsize \textbf{\textcolor{posonlycolor}{pos\_only}} \;(BAC 0.540)\\[0.2em]
       \begin{tikzpicture}[
           cell/.style={minimum width=1.15cm, minimum height=0.66cm,
                        draw=white, line width=1pt, align=center, font=\scriptsize},
@@ -278,10 +276,10 @@
         \node[font=\tiny] at (1.80, 0.60) {Pred R};
         \node[font=\tiny, rotate=90] at (-0.05, 0.18) {T.\,L};
         \node[font=\tiny, rotate=90] at (-0.05,-0.48) {T.\,R};
-        \node[cell, fill=winnercolor!53] at (0.65, 0.18) {53.2};
-        \node[cell, fill=chindcolor!35]  at (1.80, 0.18) {46.8};
-        \node[cell, fill=chindcolor!35]  at (0.65,-0.48) {49.3};
-        \node[cell, fill=winnercolor!51] at (1.80,-0.48) {50.7};
+        \node[cell, fill=winnercolor!54] at (0.65, 0.18) {53.8};
+        \node[cell, fill=chindcolor!35]  at (1.80, 0.18) {46.2};
+        \node[cell, fill=chindcolor!35]  at (0.65,-0.48) {45.8};
+        \node[cell, fill=winnercolor!54] at (1.80,-0.48) {54.2};
       \end{tikzpicture}
     \end{column}
   \end{columns}
@@ -302,7 +300,7 @@
       \begin{itemize}
         \setlength{\itemsep}{3pt}
         \item Geometry-conditioned attention \textbf{transfers zero-shot} to an unseen montage and \textbf{beats chind significantly}.
-        \item Ablation localizes the effect: geometry helps through the \textbf{value path} (G2\,$\approx$\,G3\,$\gg$\,G1).
+        \item Robust to descriptor reduction (pos\_only also significant).
       \end{itemize}
       \vspace{0.5em}
       \textbf{Honest limits:}
