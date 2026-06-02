@@ -27,6 +27,8 @@
 \definecolor{chindcolor}{HTML}{888888}
 \definecolor{winnercolor}{HTML}{18A558}
 \definecolor{accentred}{HTML}{D7263D}
+\definecolor{biaspathcol}{HTML}{E8833A}   % orange — score-bias path (G1), inert in the ablation
+\definecolor{valuepathcol}{HTML}{2E86AB}  % blue — value path (G2), where the signal lives
 
 % Title meta
 \title{Geometrically Inductive Self-Supervised Learning for EEG}
@@ -186,8 +188,8 @@
 
         % --- geometry side (right) ---
         \node[box, fill=geocolor!12]    (gij)   at (2.7, 3.95) {$g_{ij}$};
-        \node[mlp]                      (bmlp)  at (2.7, 2.6)  {bias MLP};
-        \node[mlp]                      (wmlp)  at (2.7, 1.0)  {value MLP};
+        \node[mlp, fill=biaspathcol!35]  (bmlp)  at (2.7, 2.6)  {bias MLP};
+        \node[mlp, fill=valuepathcol!30] (wmlp)  at (2.7, 1.0)  {value MLP};
         \node[op]                       (vsum)  at (1.35, 0.0) {$+$};
 
         % --- main chain arrows ---
@@ -199,15 +201,22 @@
         \draw[->] (vsum) -- (dot);
         \draw[->] (dot) -- (out);
 
-        % --- geometry: g_ij feeds BOTH MLPs (parallel) ---
-        \draw[->, geocolor] (gij) -- (bmlp);
-        \draw[->, geocolor] (gij.east) to[out=-90, in=90] (wmlp.east);
-        \draw[->, geocolor] (bmlp) -- (plus) node[midway, above, font=\tiny] {$b(g_{ij})$};
-        \draw[->, geocolor] (wmlp) -- (vsum) node[midway, above, font=\tiny] {$w(g_{ij})$};
+        % --- geometry: g_ij feeds BOTH MLPs (parallel); bias path vs value path ---
+        \draw[->, biaspathcol, thick]  (gij) -- (bmlp);
+        \draw[->, valuepathcol, thick] (gij.east) to[out=-90, in=90] (wmlp.east);
+        \draw[->, biaspathcol, thick]  (bmlp) -- (plus) node[midway, above, font=\tiny] {$b(g_{ij})$};
+        \draw[->, valuepathcol, thick] (wmlp) -- (vsum) node[midway, above, font=\tiny] {$w(g_{ij})$};
         % v from the q,k,v box into the value sum
         \draw[->] (qkv.east) to[out=0, in=90] (1.35, 0.25) -- (vsum)
           node[pos=0.18, above, font=\tiny] {$v$};
       \end{tikzpicture}
+
+      \vspace{0.2em}
+      \scriptsize
+      \textcolor{biaspathcol}{\textbf{bias path}} only $=$ G1,\quad
+      \textcolor{valuepathcol}{\textbf{value path}} only $=$ G2,\quad both $=$ G3.\\
+      Ablation: the signal is in the \textcolor{valuepathcol}{\textbf{value path}}
+      --- G2\,$\approx$\,G3\,$\gg$\,G1 (G1 $\approx$ no geometry).
     \end{column}
   \end{columns}
 \end{frame}
@@ -216,27 +225,69 @@
 % Slide 4 — Headline: scale makes the geometric advantage significant
 % =============================================================================
 \begin{frame}{Headline: at scale, geometric beats chind on zero-shot transfer}
+  \begin{columns}[c]
+    \begin{column}{0.52\textwidth}
+      \centering
+      \begin{tikzpicture}
+        \begin{axis}[
+          width=6.4cm, height=5.8cm,
+          ybar, bar width=20pt,
+          enlarge x limits=0.18,
+          ymin=0.49, ymax=0.56,
+          ylabel={Zero-shot balanced accuracy (BAC)},
+          symbolic x coords={chind, pos\_only, geom},
+          xtick={chind, pos\_only, geom},
+          nodes near coords,
+          nodes near coords style={font=\scriptsize},
+          x tick label style={font=\scriptsize, /pgf/number format/assume math mode=true},
+          tick label style={font=\scriptsize},
+          label style={font=\small},
+        ]
+          \addplot[fill=chindcolor!70,   bar shift=0pt] coordinates {(chind,0.509)};
+          \addplot[fill=posonlycolor!85, bar shift=0pt] coordinates {(pos\_only,0.540)};
+          \addplot[fill=geocolor!85,     bar shift=0pt] coordinates {(geom,0.549)};
+        \end{axis}
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \centering
+      \scriptsize cells $=$ row-normalized recall (\%); diag mean $=$ BAC\\[0.5em]
+      % --- geom matrix (G2, value-path; the strongest full-descriptor variant) ---
+      \scriptsize \textbf{\textcolor{geocolor}{geom}} (G2, full) \;(BAC 0.549)\\[0.2em]
+      \begin{tikzpicture}[
+          cell/.style={minimum width=1.15cm, minimum height=0.66cm,
+                       draw=white, line width=1pt, align=center, font=\scriptsize},
+        ]
+        \node[font=\tiny] at (0.65, 0.60) {Pred L};
+        \node[font=\tiny] at (1.80, 0.60) {Pred R};
+        \node[font=\tiny, rotate=90] at (-0.05, 0.18) {T.\,L};
+        \node[font=\tiny, rotate=90] at (-0.05,-0.48) {T.\,R};
+        \node[cell, fill=winnercolor!56] at (0.65, 0.18) {56.4};
+        \node[cell, fill=chindcolor!35]  at (1.80, 0.18) {43.6};
+        \node[cell, fill=chindcolor!35]  at (0.65,-0.48) {46.6};
+        \node[cell, fill=winnercolor!53] at (1.80,-0.48) {53.4};
+      \end{tikzpicture}
+      \\[0.5em]
+      % --- pos_only matrix ---
+      \scriptsize \textbf{\textcolor{posonlycolor}{pos\_only}} \;(BAC 0.540)\\[0.2em]
+      \begin{tikzpicture}[
+          cell/.style={minimum width=1.15cm, minimum height=0.66cm,
+                       draw=white, line width=1pt, align=center, font=\scriptsize},
+        ]
+        \node[font=\tiny] at (0.65, 0.60) {Pred L};
+        \node[font=\tiny] at (1.80, 0.60) {Pred R};
+        \node[font=\tiny, rotate=90] at (-0.05, 0.18) {T.\,L};
+        \node[font=\tiny, rotate=90] at (-0.05,-0.48) {T.\,R};
+        \node[cell, fill=winnercolor!54] at (0.65, 0.18) {53.8};
+        \node[cell, fill=chindcolor!35]  at (1.80, 0.18) {46.2};
+        \node[cell, fill=chindcolor!35]  at (0.65,-0.48) {45.8};
+        \node[cell, fill=winnercolor!54] at (1.80,-0.48) {54.2};
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+  \vspace{0.2em}
   \centering
-  \begin{tikzpicture}
-    \begin{axis}[
-      width=10cm, height=6.2cm,
-      ybar, bar width=42pt,
-      enlarge x limits=0.28,
-      ymin=0.49, ymax=0.56,
-      ylabel={Zero-shot BAC (BCIC-2B)},
-      symbolic x coords={chind, pos\_only, geom},
-      xtick=data,
-      nodes near coords,
-      nodes near coords style={font=\small},
-      tick label style={font=\normalsize},
-      label style={font=\normalsize},
-    ]
-      \addplot[fill=chindcolor!70,   bar shift=0pt] coordinates {(chind,0.509)};
-      \addplot[fill=posonlycolor!85, bar shift=0pt] coordinates {(pos\_only,0.531)};
-      \addplot[fill=geocolor!85,     bar shift=0pt] coordinates {(geom,0.545)};
-    \end{axis}
-  \end{tikzpicture}
-  \\[0.4em]
+  \footnotesize
   78 PhysioNet $+$ 78 Sleep-EDFx pretrain \quad$\to$\quad zero-shot to BCIC-2B
 \end{frame}
 
@@ -257,7 +308,7 @@
       \textbf{Honest limits:}
       \begin{itemize}
         \setlength{\itemsep}{3pt}
-        \item Significant on \textbf{one} held-out montage (BCIC); small-corpus tests directional but underpowered (9-subject ceiling).
+        \item Significant on \textbf{one} held-out montage (BCIC); small-corpus tests point the right way but are not significant (9-subject ceiling, underpowered).
       \end{itemize}
       \vspace{0.5em}
       \textbf{Future work:} second distinct-montage held-out (e.g.\ 128\,ch); larger corpus; implement the codex baseline.
@@ -268,21 +319,34 @@
 % =============================================================================
 % Slide 6 — Predicted vs. observed scorecard
 % =============================================================================
-\begin{frame}{Did the results match the proposal's predictions?}
-  \vspace{0.5em}
+\begin{frame}{Did I run what the proposal promised?}
   \centering
-  \textbf{Predicted vs.\ observed}\\[0.8em]
-  \begin{tabular}{lcc}
+  \small
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabular}{@{}p{4.9cm}l@{}}
     \toprule
-                      & \textbf{Predicted} & \textbf{Observed} \\
+    \textbf{Proposed experiment} & \textbf{Outcome} \\
     \midrule
-    Direction (3 montages) & geom $+$  & \textcolor{winnercolor}{\textbf{geom $+$ (3/3)}} \\[0.3em]
-    Powered transfer       & geom $++$ & \textcolor{winnercolor}{\textbf{geom $++$, sig.}} \\[0.3em]
-    Across all montages    & hoped     & 1 powered; rest future \\
+    E2(c) — cross-montage zero-shot
+      & \textcolor{winnercolor}{\textbf{\checkmark\ the headline win, significant}} \\
+    E3 — where $g_{ij}$ enters (G1/G2/G3)
+      & \textcolor{winnercolor}{\textbf{\checkmark\ signal is value-path: G2$\,\approx\,$G3$\,\gg\,$G1}} \\
+    E4 — channel-independent baseline
+      & \textcolor{winnercolor}{\textbf{\checkmark\ promoted to my baseline}} \\
+    \midrule
+    E1 — in-distribution vs.\ codex
+      & \textcolor{chindcolor}{codex can't run on a new montage} \\
+    E2(a) — cross-session
+      & \textcolor{chindcolor}{session drift is physiological, not geometric} \\
+    E2(b) — cross-subject / head size
+      & \textcolor{chindcolor}{no public head-size-varied dataset} \\
     \bottomrule
   \end{tabular}
-  \\[1.5em]
+  \\[0.9em]
   \footnotesize
+  \textcolor{winnercolor}{\textbf{Top:}} delivered.\quad
+  \textcolor{chindcolor}{\textbf{Bottom:}} out of reach for a course project --- reported as limits.
+  \\[0.6em]
   \texttt{github.com/tianxin-scu/geometric-eeg-ssl}
 \end{frame}
 
@@ -292,14 +356,13 @@
 \begin{frame}{Key References}
   \footnotesize
   \begin{itemize}
-    \setlength{\itemsep}{3pt}
-    \item Wang et al. \textbf{EEGPT}. NeurIPS 2024 -- training recipe (momentum + reconstruction).
-    \item Grill et al. \textbf{BYOL}. NeurIPS 2020 -- momentum-encoder alignment.
-    \item He et al. \textbf{MAE}. CVPR 2022 -- masked-patch reconstruction.
-    \item Hamilton, Ying, Leskovec. \textbf{GraphSAGE}. NeurIPS 2017 -- inductive vs. transductive vocabulary.
-    \item Veli\v{c}kovi\'c et al. \textbf{GAT}. ICLR 2018 -- attention over relational features.
-    \item Jiang et al. \textbf{LaBraM}. ICLR 2024; Yang et al. \textbf{BIOT}. NeurIPS 2023 -- codex / channel-independent baselines.
-    \item Schalk et al. 2004 -- PhysioNet MI; Tangermann et al. 2012 -- BCIC-2B; Kemp et al. 2000 -- Sleep-EDF.
+    \setlength{\itemsep}{4pt}
+    \item Wang et al. \textbf{EEGPT}. NeurIPS 2024 -- EEG foundation model; training recipe.
+    \item Jiang et al. \textbf{LaBraM}. ICLR 2024 -- codex (identity-indexed) baseline.
+    \item Yang et al. \textbf{BIOT}. NeurIPS 2023 -- channel-independent baseline.
+    \item Schalk et al. 2004 -- PhysioNet MI dataset.
+    \item Tangermann et al. 2012 -- BCIC-2B dataset.
+    \item Kemp et al. 2000 -- Sleep-EDFx dataset.
   \end{itemize}
   \vspace{0.6em}
   \centering

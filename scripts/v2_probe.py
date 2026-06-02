@@ -46,7 +46,12 @@ sys.path.insert(0, str(_src))
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
+from sklearn.metrics import (
+    balanced_accuracy_score,
+    cohen_kappa_score,
+    confusion_matrix,
+    f1_score,
+)
 from sklearn.preprocessing import StandardScaler
 
 from src.config import Config
@@ -230,23 +235,27 @@ def extract_features(
 # Metrics + probe fit
 # ---------------------------------------------------------------------------
 
-def _compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
+def _compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, labels) -> dict:
+    # confusion_matrix rows = true class, cols = predicted class, in `labels`
+    # order. Row-normalizing gives per-class recall; their mean is the BAC.
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
     return {
         "balanced_accuracy": float(balanced_accuracy_score(y_true, y_pred)),
         "cohens_kappa":      float(cohen_kappa_score(y_true, y_pred)),
         "weighted_f1":       float(f1_score(y_true, y_pred, average="weighted",
                                             zero_division=0)),
+        "confusion_matrix":  cm.astype(int).tolist(),
     }
 
 
-def _fit_and_score(train_feats, train_y, test_feats, test_y, max_iter):
+def _fit_and_score(train_feats, train_y, test_feats, test_y, max_iter, labels):
     scaler = StandardScaler()
     train_feats = scaler.fit_transform(train_feats)
     test_feats = scaler.transform(test_feats)
     clf = LogisticRegression(max_iter=max_iter, C=1.0, solver="lbfgs")
     clf.fit(train_feats, train_y)
     y_pred = clf.predict(test_feats)
-    return _compute_metrics(test_y, y_pred)
+    return _compute_metrics(test_y, y_pred, labels)
 
 
 # ---------------------------------------------------------------------------
@@ -265,17 +274,25 @@ def loso_eval(subjects, dataset, cfg, backbone, device, uses_geometry,
         per_subject_feats[subj] = (feats, y_s)
         print(f"  subject {subj}: {X_s.shape[0]} epochs")
 
+    # Fixed label order shared by every subject's confusion matrix, so the
+    # per-subject matrices are summable into one dataset-level matrix.
+    labels = sorted(np.unique(np.concatenate(
+        [y for _, y in per_subject_feats.values()])).tolist())
+
     per_subject_results = {}
     bac_list = []
+    cm_total = np.zeros((len(labels), len(labels)), dtype=np.int64)
     for test_subj in subjects:
         train_feats = np.concatenate(
             [per_subject_feats[s][0] for s in subjects if s != test_subj], axis=0)
         train_y = np.concatenate(
             [per_subject_feats[s][1] for s in subjects if s != test_subj], axis=0)
         test_feats, test_y = per_subject_feats[test_subj]
-        metrics = _fit_and_score(train_feats, train_y, test_feats, test_y, max_iter)
+        metrics = _fit_and_score(train_feats, train_y, test_feats, test_y,
+                                 max_iter, labels)
         per_subject_results[test_subj] = metrics
         bac_list.append(metrics["balanced_accuracy"])
+        cm_total += np.array(metrics["confusion_matrix"], dtype=np.int64)
         print(f"  subj {test_subj:3d} | BAC={metrics['balanced_accuracy']:.3f}  "
               f"kappa={metrics['cohens_kappa']:.3f}")
 
@@ -284,6 +301,8 @@ def loso_eval(subjects, dataset, cfg, backbone, device, uses_geometry,
         "bac_mean": float(bac_arr.mean()),
         "bac_std": float(bac_arr.std()),
         "n_subjects": len(subjects),
+        "labels": labels,
+        "confusion_matrix": cm_total.tolist(),
     }
     print(f"\nLOSO BAC: {aggregate['bac_mean']:.3f} +/- {aggregate['bac_std']:.3f}")
     return {"per_subject": per_subject_results, "aggregate": aggregate}
@@ -299,8 +318,12 @@ def within_subject_eval(subjects, dataset, cfg, backbone, device,
         raise ValueError(f"dataset {dataset!r} has no night labels; use loso")
 
     print(f"Within-subject night split over {len(subjects)} subjects on {dataset} ...")
+    # Sleep staging has a fixed class set (0..4); pin the label order so every
+    # subject's confusion matrix is summable regardless of which stages appear.
+    labels = list(range(5))
     per_subject_results = {}
     bac_list = []
+    cm_total = np.zeros((len(labels), len(labels)), dtype=np.int64)
     for subj in subjects:
         X_s, y_s, ch_pos_s, night_s = _load_one_subject(dataset, subj, cfg)
         n1 = night_s == 1
@@ -310,9 +333,11 @@ def within_subject_eval(subjects, dataset, cfg, backbone, device,
             continue
         feats = extract_features(backbone, X_s, ch_pos_s, device,
                                  uses_geometry, batch_size)
-        metrics = _fit_and_score(feats[n1], y_s[n1], feats[n2], y_s[n2], max_iter)
+        metrics = _fit_and_score(feats[n1], y_s[n1], feats[n2], y_s[n2],
+                                 max_iter, labels)
         per_subject_results[subj] = metrics
         bac_list.append(metrics["balanced_accuracy"])
+        cm_total += np.array(metrics["confusion_matrix"], dtype=np.int64)
         print(f"  subj {subj:3d} | n1={n1.sum()} -> n2={n2.sum()} | "
               f"BAC={metrics['balanced_accuracy']:.3f}")
 
@@ -324,6 +349,8 @@ def within_subject_eval(subjects, dataset, cfg, backbone, device,
         "bac_mean": float(bac_arr.mean()),
         "bac_std": float(bac_arr.std()),
         "n_subjects": len(bac_list),
+        "labels": labels,
+        "confusion_matrix": cm_total.tolist(),
     }
     print(f"\nWithin-subject BAC: {aggregate['bac_mean']:.3f} +/- {aggregate['bac_std']:.3f}")
     return {"per_subject": per_subject_results, "aggregate": aggregate}
