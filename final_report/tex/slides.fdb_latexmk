@@ -1,10 +1,10 @@
 # Fdb version 4
-["xdvipdfmx"] 1780397168.68846 "slides.xdv" "slides.pdf" "slides" 1780397168.97939 0
-  "slides.xdv" 1780397168.46306 116044 b35f38a4df97960836f8b2131703b0c2 "xelatex"
+["xdvipdfmx"] 1780414247.66261 "slides.xdv" "slides.pdf" "slides" 1780414248.02247 0
+  "slides.xdv" 1780414247.42079 115816 d914f2039da8696c5b9b389ea310d7e7 "xelatex"
   (generated)
   "slides.pdf"
   (rewritten before read)
-["xelatex"] 1780397159.73018 "slides.tex" "slides.xdv" "slides" 1780397168.96402 0
+["xelatex"] 1780414236.46458 "slides.tex" "slides.xdv" "slides" 1780414248.00818 0
   "C:/Users/Tianxin/AppData/Local/MiKTeX/miktex/data/le/xetex/xelatex.fmt" 1777586389.36541 27177500 c62f2e659ff53426befa64af7b777ec9 ""
   "C:/Users/Tianxin/AppData/Local/Programs/MiKTeX/fonts/tfm/adobe/zapfding/pzdr.tfm" 1136801054 1528 f853c4d1b4e0550255e02831fdc8496f ""
   "C:/Users/Tianxin/AppData/Local/Programs/MiKTeX/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1233951848 1004 54797486969f23fa377b128694d548df ""
@@ -260,10 +260,10 @@
   "C:/Users/Tianxin/AppData/Local/Programs/MiKTeX/tex/latex/translator/translator.sty" 1622471510 8765 56d370785f0143111ff9898b5adfe08e ""
   "C:/Users/Tianxin/AppData/Local/Programs/MiKTeX/tex/latex/url/url.sty" 1388490452 12796 8edb7d69a20b857904dd0ea757c14ec9 ""
   "C:/Users/Tianxin/AppData/Local/Programs/MiKTeX/tex/latex/xcolor/xcolor.sty" 1729265222 55384 b454dec21c2d9f45ec0b793f0995b992 ""
-  "slides.aux" 1780397168.46306 1534 73b05aa7ae1d963406a1d379d65407e6 "xelatex"
-  "slides.nav" 1780397168.46306 835 b5c49ba28d3d2049d1773682fb2767a8 "xelatex"
-  "slides.out" 1780397168.13892 0 d41d8cd98f00b204e9800998ecf8427e "xelatex"
-  "slides.tex" 1780397071.13866 16617 286fb2699d201aef72871a9c9e23c5c1 ""
+  "slides.aux" 1780414247.40911 1534 73b05aa7ae1d963406a1d379d65407e6 "xelatex"
+  "slides.nav" 1780414247.42079 835 b5c49ba28d3d2049d1773682fb2767a8 "xelatex"
+  "slides.out" 1780414247.06206 0 d41d8cd98f00b204e9800998ecf8427e "xelatex"
+  "slides.tex" 1780414158.46513 16671 f66eb35fa0c1040d79124d5e2e04e425 ""
   (generated)
   "slides.aux"
   "slides.log"
