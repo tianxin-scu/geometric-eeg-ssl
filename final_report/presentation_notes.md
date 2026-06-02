@@ -55,6 +55,91 @@ $$o_i^{h} = \sum_j a_{ij}^{h}\,\bigl(v_j^{h} + w^{h}(g_{ij})\bigr)$$
 - Neither geometric term ever touches the patch embedding directly; both enter *inside* attention. G1 = bias only, G2 = value only, **G3 = both** (v2 ran all three in the E3 ablation; the headline variant is G2+full).
 - Code: [src/v2/model/geometric_attention_v2.py](src/v2/model/geometric_attention_v2.py) lines 230 (bias) and 254–255 (value).
 
+### The flow (v2 — what I actually trained)
+
+End-to-end tensor shapes through the backbone, spatial encoder → temporal encoder (EEGPT-style recipe). Toy numbers for readability: `B=2` batch, `M=4` electrodes, `T=200` raw samples, `patch_samples=50` ⇒ `T_p=4` patches, `d=256`. (Real config: `M` up to 64, `T=800`, `T_p=16`, `d=256`.)
+
+```
+raw EEG                       (B=2, M=4, T=200)
+   │  patcher: unfold time into non-overlapping windows
+   ▼
+patches                       (B=2, M=4, T_p=4, P=50)
+   │  proj: Linear(50 → 256), applied per patch (electrode-agnostic)
+   ▼
+feats                         (B=2, M=4, T_p=4, d=256)
+   │
+   │  ─── SPATIAL ENCODER (attends ACROSS the M=4 electrodes) ───
+   │  reshape so each time step is its own "sentence" of M tokens:
+   │      (B, M, T_p, d) → (B*T_p=8, M=4, d=256)
+   │  geometry-conditioned attention over the 4 electrode tokens (G1/G2/G3)
+   │  reshape back:
+   ▼
+spatial out                   (B=2, M=4, T_p=4, d=256)   ← electrode dim SURVIVES in v2
+   │
+   │  ─── TEMPORAL ENCODER (attends ACROSS the T_p=4 time steps) ───
+   │  reshape so each electrode is its own "sentence" of T_p tokens:
+   │      (B, M, T_p, d) → (B*M=8, T_p=4, d=256)
+   │
+   │  *** positional embedding here: x = x + pe[:T_p]  (shape unchanged) ***
+   │      (8, 4, 256) + (1, 4, 256) → (8, 4, 256)
+   │
+   │  L_T=4 transformer layers attending over the T_p axis
+   │  reshape back:
+   ▼
+output                        (B=2, M=4, T_p=4, d=256)
+```
+
+Key points for Q&A:
+
+- **v2 keeps the electrode dimension.** The spatial encoder does *not* CLS-pool electrodes away (that is v1's design); output stays `(B, M, T_p, d)` so the loss can be **per-channel**. The temporal Transformer then runs **per electrode**, over its own `T_p`-length patch sequence (reshape to `(B*M, T_p, d)`). Costs `M×` more temporal compute than v1. See the v1-vs-v2 contrast at [src/v2/model/backbone_v2.py](src/v2/model/backbone_v2.py#L5-L18).
+- **Two distinct attention axes.** Spatial attention is over **electrodes** (this is where `g_ij` enters); temporal attention is over **time-steps** (vanilla, no geometry). They never mix in a single attention op.
+- **Positional embedding does not change shape and does not pool.** It is a learned `(max_len=64, d=256)` table; only the first `T_p` rows are added (broadcast over batch and electrodes) at the temporal encoder's input — `(…, T_p, d) → (…, T_p, d)`. It stamps *time-step order*, nothing else. Code: [src/model/backbone.py](src/model/backbone.py#L145) (table) and [src/model/backbone.py](src/model/backbone.py#L174) (the add).
+- **Patcher + projection + temporal Transformer are reused unmodified from v1** ([src/v2/model/backbone_v2.py](src/v2/model/backbone_v2.py#L31)); only the spatial encoder is v2-specific.
+
+### Layer internals — depth, residuals, per-layer weights
+
+Structural details a reviewer may probe:
+
+- **Depth: `L_S=2`, `L_T=4`.** 2 stacked geometric-attention blocks over electrodes, 4 vanilla blocks over time-steps. Set in [src/config.py](src/config.py#L125-L127).
+- **Residuals: yes — standard pre-norm, two per block.** Every block (spatial *and* temporal) is `x = x + attn(norm1(x))` then `x = x + mlp(norm2(x))` — LayerNorm *before* each sublayer, residual *around* it. So 2 residual adds × (2 spatial + 4 temporal) = **12 residual connections**, plus a final LayerNorm after each stack. Spatial: [geometric_attention_v2.py:305-311](src/v2/model/geometric_attention_v2.py#L305-L311); temporal: [backbone.py:248-249](src/model/backbone.py#L248-L249).
+- **`g_ij` is computed once per montage; Q/K/V and the geometry MLPs are per-layer (not shared, not recomputed redundantly).** Three separate facts:
+  - The raw R¹⁰ descriptor `g_ij` is built a single time per montage (`build_geometric_descriptor_v2`, [geometric_attention_v2.py:366](src/v2/model/geometric_attention_v2.py#L366)) — fixed geometry, no reason to recompute.
+  - Each of the 2 spatial layers has its **own** Q/K/V/out projections, recomputed at that layer from its input (the running residual stream); layer 2's QKV sees layer 1's output, not the original patches.
+  - Each layer also has its **own** geometry MLPs, so the same `g_ij` is fed through different MLPs per layer, yielding **`L_S=2` distinct bias tables + 2 distinct value tables** (precompute loop, [geometric_attention_v2.py:370-373](src/v2/model/geometric_attention_v2.py#L370-L373)).
+- **"Fed twice" within a G3 layer — yes, into two different MLPs.** In G3, a single layer consumes `g_ij` through **two separate MLPs** (`geom_bias_mlp` for the score + `geom_value_mlp` for the value). Across the 2 spatial layers that is 4 geometry-MLP instances total (2 bias + 2 value), all fed the one precomputed `g_ij`. G1 = only the bias MLP per layer; G2 = only the value MLP per layer.
+
+### Parameter count
+
+Counts from instantiating the actual model ([configs/v2/pretrain/v2_default.yaml](configs/v2/pretrain/v2_default.yaml): G3, full R¹⁰ descriptor, `d=256`, `L_S=2`, `L_T=4`, `H=8`).
+
+**Encoder (the model I deploy / probe): ≈4.79M parameters.** This is the backbone that survives pretraining — the prediction MLP, reconstruction head, and EMA momentum copy are all dropped before downstream probing.
+
+| Component | Params | Notes |
+|---|---:|---|
+| Patch projection (Linear 50→256) | 13,056 | electrode-agnostic, shared across all channels |
+| **Spatial encoder** (L_S=2, H=8) | **1,598,864** | geometry-conditioned attention over electrodes |
+| **Temporal encoder** (L_T=4, H=8) | **3,175,936** | vanilla Transformer over time-steps |
+| **Total backbone** | **4,787,856** | ≈ 4.79M |
+
+(G2+full, the slide-4 headline variant, = 4,786,624; all seven E5 variants fall within **0.4%** of each other — geometry-injection mode barely moves the count, so the E5 accuracy differences are not a capacity artifact.)
+
+**Where the parameters live:**
+
+| Sub-block | Params |
+|---|---:|
+| Spatial — Q/K/V/out projections | 526,336 |
+| Spatial — FFN (MLP, ratio 4×) | 1,051,136 |
+| Spatial — **geometry MLPs** (the contribution) | 18,832 |
+| Spatial — LayerNorms | 2,560 |
+| Temporal — Q/K/V/out projections | 1,052,672 |
+| Temporal — FFN (MLP, ratio 4×) | 2,102,272 |
+| Temporal — learned positional table | 16,384 |
+| Temporal — LayerNorms | 4,608 |
+
+**Talking point:** the **geometry MLPs total only 18.8K params — 0.4% of the backbone.** The entire cross-montage capability rides on a fraction of a percent of the model; the rest is a standard parameter-matched Transformer. That is the honest "geometry at parameter parity" framing.
+
+**Training-time totals** (context only — not deployed): online backbone 4.79M + prediction MLP 527,616 + reconstruction head 12,850 = **5.33M trainable**; plus a frozen EMA momentum copy of the backbone (4.79M, no gradients) → **10.12M total** held in memory during pretraining.
+
 ---
 
 ## Slide 4 — Headline result

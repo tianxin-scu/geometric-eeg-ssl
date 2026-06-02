@@ -25,9 +25,14 @@ Cross-montage transductive caveat:
   codex table has no entries for the new layout. Two fallbacks per the
   proposal §5/E2c:
     --codex-fallback random:  re-init the codex for the new M
-    --codex-fallback nn:      nearest-neighbor copy from source positions
-                              (currently raises NotImplementedError; falls
-                              back to random with a warning if requested).
+    --codex-fallback name:    EEGPT-style name-aligned gather. Copy source
+                              codex rows for electrodes whose channel name
+                              matches the source montage; random-init the rest.
+                              Requires --source-dataset (the pretraining
+                              dataset) to recover the source name ordering.
+    --codex-fallback nn:      geometric nearest-neighbor copy from source
+                              positions (not implemented; falls back to random
+                              with a warning if requested).
 
 Usage:
     python scripts/probe.py \
@@ -48,6 +53,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 _src = Path(__file__).resolve().parents[1] / "src"
 sys.path.insert(0, str(_src))
+
+from typing import Optional
 
 import numpy as np
 import torch
@@ -116,9 +123,21 @@ def _parse_args(argv=None):
     p.add_argument("--device", default=None)
     p.add_argument("--output", default=None)
     p.add_argument("--max-iter", type=int, default=1000)
-    p.add_argument("--codex-fallback", default="random", choices=["random", "nn"],
+    p.add_argument("--codex-fallback", default="random",
+                   choices=["random", "nn", "name"],
                    help="When the checkpoint codex size != target n_electrodes, "
-                        "how to handle the mismatch. Only relevant for use_codex=True.")
+                        "how to handle the mismatch. Only relevant for "
+                        "use_codex=True. 'random' re-inits the target codex; "
+                        "'name' does an EEGPT-style name-aligned gather (copy "
+                        "source codex rows for electrodes whose channel name "
+                        "matches, random-init the rest); 'nn' (geometric "
+                        "nearest-neighbor) is not implemented.")
+    p.add_argument("--source-dataset", default="physionet_mi",
+                   choices=sorted(_DATASETS),
+                   help="Dataset the checkpoint was pretrained on. Used by "
+                        "--codex-fallback name to recover the source montage's "
+                        "channel-name ordering (the codex table is positional, "
+                        "so the names are read from one subject of this dataset).")
     return p.parse_args(argv)
 
 
@@ -161,12 +180,86 @@ def _build_backbone(cfg: Config, n_electrodes: int) -> Backbone:
     return Backbone(spatial, arch=arch)
 
 
+def _norm_ch(name: str) -> str:
+    """Normalize a channel name for montage-agnostic matching.
+
+    PhysioNet names come out of ``eegbci.standardize`` as standard 10-05 labels
+    (e.g. ``C3``, ``Cz``); MOABB datasets use the same labels but case/trailing
+    punctuation can drift across loaders. Upper-casing and stripping trailing
+    dots makes ``Cz`` match ``CZ`` / ``Cz.`` without risking collisions between
+    distinct electrodes.
+    """
+    return name.upper().rstrip(".")
+
+
+def _name_align_codex(
+    backbone: Backbone,
+    online_state: dict,
+    ckpt_codex_keys: list[str],
+    source_ch_names: Optional[list[str]],
+    target_ch_names: Optional[list[str]],
+) -> None:
+    """EEGPT-style name-aligned codex transfer (in-place on ``online_state``).
+
+    For each target electrode whose channel name appears in the source montage,
+    copy that source codex row; electrodes with no source match keep the target
+    codex's fresh random init. Rewrites the codex table entry in
+    ``online_state`` to the target shape so ``load_state_dict`` picks it up
+    cleanly (no dropped key, no size mismatch).
+
+    Only the full ``codex.table`` formulation is supported — the trained
+    checkpoints use it. Low-rank (U/V) codex transfer raises.
+    """
+    if source_ch_names is None or target_ch_names is None:
+        raise ValueError(
+            "codex_fallback='name' requires both source and target channel "
+            "names. Pass --source-dataset and ensure the eval loader returns "
+            "ch_names."
+        )
+    table_keys = [k for k in ckpt_codex_keys if k.endswith("codex.table")]
+    if len(table_keys) != 1:
+        raise NotImplementedError(
+            f"name-aligned gather supports only a full codex.table; got codex "
+            f"keys {ckpt_codex_keys}. Low-rank (U/V) codex transfer is not "
+            f"implemented."
+        )
+    key = table_keys[0]
+    src_table = online_state[key]  # (src_M, d)
+    if src_table.shape[0] != len(source_ch_names):
+        raise ValueError(
+            f"source codex has {src_table.shape[0]} rows but "
+            f"{len(source_ch_names)} source channel names were provided."
+        )
+    # Start from the target codex's fresh random init so misses stay random.
+    target_table = backbone.spatial.codex.table.data.clone()
+    if target_table.shape[0] != len(target_ch_names):
+        raise ValueError(
+            f"target codex has {target_table.shape[0]} rows but "
+            f"{len(target_ch_names)} target channel names were provided."
+        )
+    name_to_row = {_norm_ch(n): i for i, n in enumerate(source_ch_names)}
+    hits, misses = [], []
+    for j, name in enumerate(target_ch_names):
+        src_i = name_to_row.get(_norm_ch(name))
+        if src_i is not None:
+            target_table[j] = src_table[src_i].to(target_table.dtype)
+            hits.append(name)
+        else:
+            misses.append(name)
+    online_state[key] = target_table  # target-shaped -> loads cleanly
+    print(f"  name-aligned codex: {len(hits)}/{len(target_ch_names)} electrodes "
+          f"matched by name; {len(misses)} random-init "
+          f"[{', '.join(misses) if misses else 'none'}]")
+
+
 def _load_backbone(
     ckpt_path: Path,
     cfg: Config,
     n_electrodes: int,
     device: torch.device,
     codex_fallback: str = "random",
+    target_ch_names: Optional[list[str]] = None,
+    source_ch_names: Optional[list[str]] = None,
 ) -> Backbone:
     """Load a pretrained backbone; handle codex-size mismatch for cross-montage."""
     state = torch.load(ckpt_path, map_location=device)
@@ -189,15 +282,25 @@ def _load_backbone(
             if src_M is not None and src_M != n_electrodes:
                 print(f"Cross-montage codex: ckpt M={src_M}, target M={n_electrodes}; "
                       f"fallback={codex_fallback}")
-                if codex_fallback == "nn":
-                    warnings.warn(
-                        "codex_fallback='nn' is not implemented; falling back to "
-                        "random init of target codex (proposal §5 caveat).",
-                        RuntimeWarning,
+                if codex_fallback == "name":
+                    _name_align_codex(
+                        backbone, online_state, ckpt_codex_keys,
+                        source_ch_names=source_ch_names,
+                        target_ch_names=target_ch_names,
                     )
-                # Drop checkpoint codex entries; target codex is fresh random init.
-                for k in ckpt_codex_keys:
-                    online_state.pop(k, None)
+                else:
+                    if codex_fallback == "nn":
+                        warnings.warn(
+                            "codex_fallback='nn' is not implemented; falling back "
+                            "to random init of target codex (proposal §5 caveat). "
+                            "Use --codex-fallback name for EEGPT-style name "
+                            "alignment.",
+                            RuntimeWarning,
+                        )
+                    # Drop checkpoint codex entries; target codex stays fresh
+                    # random init.
+                    for k in ckpt_codex_keys:
+                        online_state.pop(k, None)
 
     missing, unexpected = backbone.load_state_dict(online_state, strict=False)
     if unexpected:
@@ -404,13 +507,29 @@ def main(argv=None):
     # Discover n_electrodes by loading the first subject. Cheap if cached;
     # avoids hardcoding M per dataset.
     print(f"Discovering n_electrodes from {args.dataset} subject {subjects[0]} ...")
-    _, _, ch_pos_probe, _, _ = _load_one_subject(args.dataset, subjects[0], cfg)
+    _, _, ch_pos_probe, target_ch_names, _ = _load_one_subject(
+        args.dataset, subjects[0], cfg
+    )
     n_electrodes = int(ch_pos_probe.shape[0])
     print(f"  n_electrodes = {n_electrodes}")
+
+    # For EEGPT-style name-aligned codex transfer, recover the source montage's
+    # channel-name ordering from one subject of the pretraining dataset (the
+    # codex table is positional, so it carries no names itself).
+    source_ch_names = None
+    if args.codex_fallback == "name" and cfg.ablation.use_codex:
+        src_subj = _DATASETS[args.source_dataset]["all_subjects"]()[0]
+        print(f"Reading source channel names from {args.source_dataset} "
+              f"subject {src_subj} ...")
+        _, _, _, source_ch_names, _ = _load_one_subject(
+            args.source_dataset, src_subj, cfg
+        )
 
     backbone = _load_backbone(
         ckpt_path, cfg, n_electrodes=n_electrodes, device=device,
         codex_fallback=args.codex_fallback,
+        target_ch_names=target_ch_names,
+        source_ch_names=source_ch_names,
     )
     n_params = sum(p.numel() for p in backbone.parameters())
     print(f"backbone parameters: {n_params:,}  (frozen)")

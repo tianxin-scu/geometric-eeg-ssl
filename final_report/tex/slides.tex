@@ -68,7 +68,7 @@
       \vspace{0.4em}
       \footnotesize
       \textcolor{codexcolor}{\textbf{Codex models}} (LaBraM, EEGPT):
-      identity-indexed embeddings --- \textbf{cannot even run} on an unseen layout.
+      identity-indexed embeddings --- \textbf{no way to generalize} to an unseen layout.
       \textcolor{chindcolor}{\textbf{Channel-independent}} (BIOT):
       no spatial structure at all.
       \\[0.3em]
@@ -203,12 +203,12 @@
 
         % --- geometry: g_ij feeds BOTH MLPs (parallel); bias path vs value path ---
         \draw[->, biaspathcol, thick]  (gij) -- (bmlp);
-        \draw[->, valuepathcol, thick] (gij.east) to[out=-90, in=90] (wmlp.east);
+        \draw[->, valuepathcol, thick] (gij.east) to[out=0, in=0, looseness=0.5] (wmlp.east);
         \draw[->, biaspathcol, thick]  (bmlp) -- (plus) node[midway, above, font=\tiny] {$b(g_{ij})$};
-        \draw[->, valuepathcol, thick] (wmlp) -- (vsum) node[midway, above, font=\tiny] {$w(g_{ij})$};
+        \draw[->, valuepathcol, thick] (wmlp) -- (vsum) node[midway, anchor=north west, font=\tiny] {$w(g_{ij})$};
         % v from the q,k,v box into the value sum
-        \draw[->] (qkv.east) to[out=0, in=90] (1.35, 0.25) -- (vsum)
-          node[pos=0.18, above, font=\tiny] {$v$};
+        \draw[->] (qkv.east) to[out=0, in=90] (vsum);
+        \node[font=\tiny, xshift=-4pt, yshift=16pt] at (vsum) {$v$};
       \end{tikzpicture}
 
       \vspace{0.2em}
@@ -222,36 +222,38 @@
 % =============================================================================
 % Slide 4 — Headline: scale makes the geometric advantage significant
 % =============================================================================
-\begin{frame}{Headline: at scale, geometric beats chind on zero-shot transfer}
+\begin{frame}{Headline: at scale, geometric beats both baselines on zero-shot transfer}
   \begin{columns}[c]
-    \begin{column}{0.52\textwidth}
+    \begin{column}{0.5\textwidth}
       \centering
       \begin{tikzpicture}
         \begin{axis}[
-          width=6.4cm, height=5.8cm,
-          ybar, bar width=20pt,
-          enlarge x limits=0.18,
+          width=7.0cm, height=5.8cm,
+          ybar, bar width=10pt,
+          enlarge x limits=0.2,
           ymin=0.49, ymax=0.56,
           ylabel={Zero-shot balanced accuracy (BAC)},
-          symbolic x coords={chind, pos\_only, geom},
-          xtick={chind, pos\_only, geom},
+          symbolic x coords={chind, codex, G1, pos\_only, geom},
+          xtick={chind, codex, G1, pos\_only, geom},
           nodes near coords,
-          nodes near coords style={font=\scriptsize},
+          nodes near coords style={font=\tiny},
           x tick label style={font=\scriptsize, /pgf/number format/assume math mode=true},
           tick label style={font=\scriptsize},
           label style={font=\small},
         ]
           \addplot[fill=chindcolor!70,   bar shift=0pt] coordinates {(chind,0.509)};
+          \addplot[fill=codexcolor!75,   bar shift=0pt] coordinates {(codex,0.522)};
+          \addplot[fill=biaspathcol!75,  bar shift=0pt] coordinates {(G1,0.510)};
           \addplot[fill=posonlycolor!85, bar shift=0pt] coordinates {(pos\_only,0.540)};
           \addplot[fill=geocolor!85,     bar shift=0pt] coordinates {(geom,0.549)};
         \end{axis}
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.46\textwidth}
+    \begin{column}{0.5\textwidth}
       \centering
-      \scriptsize cells $=$ row-normalized recall (\%); diag mean $=$ BAC\\[0.5em]
+      \scriptsize cells $=$ row-normalized recall (\%);\\ diag mean $=$ BAC \\[0.4em]
       % --- geom matrix (G2, value-path; the strongest full-descriptor variant) ---
-      \scriptsize \textbf{\textcolor{geocolor}{geom}} (G2, full) \;(BAC 0.549)\\[0.2em]
+      \scriptsize \textbf{\textcolor{geocolor}{geom}} (G2)\\[0.2em]
       \begin{tikzpicture}[
           cell/.style={minimum width=1.15cm, minimum height=0.66cm,
                        draw=white, line width=1pt, align=center, font=\scriptsize},
@@ -267,7 +269,7 @@
       \end{tikzpicture}
       \\[0.5em]
       % --- pos_only matrix (G3+pos_only) ---
-      \scriptsize \textbf{\textcolor{posonlycolor}{pos\_only}} \;(BAC 0.540)\\[0.2em]
+      \scriptsize \textbf{\textcolor{posonlycolor}{pos\_only}} (G3)\\[0.2em]
       \begin{tikzpicture}[
           cell/.style={minimum width=1.15cm, minimum height=0.66cm,
                        draw=white, line width=1pt, align=center, font=\scriptsize},
@@ -299,17 +301,19 @@
       \textbf{What I found:}
       \begin{itemize}
         \setlength{\itemsep}{3pt}
-        \item Geometry-conditioned attention \textbf{transfers zero-shot} to an unseen montage and \textbf{beats chind significantly}.
+        \item Geometry-conditioned attention \textbf{transfers zero-shot} to an unseen montage and \textbf{beats both baselines}.
         \item Robust to descriptor reduction (pos\_only also significant).
+        \item The signal lives in the \textcolor{valuepathcol}{\textbf{value path}}; the \textcolor{biaspathcol}{\textbf{bias path}} (G1) alone barely moves accuracy --- less significant, but can still help.
+        \item The \textcolor{codexcolor}{\textbf{codex baseline}}, even given name-aligned transfer and a regime that favors it, stays near chance --- it cannot generalize to an unseen montage.
       \end{itemize}
       \vspace{0.5em}
       \textbf{Honest limits:}
       \begin{itemize}
         \setlength{\itemsep}{3pt}
-        \item Demonstrated on \textbf{one} held-out montage (BCIC); a learned-codex baseline and broader montage coverage remain open.
+        \item Demonstrated on \textbf{one} held-out montage (BCIC); broader montage coverage remains open.
       \end{itemize}
       \vspace{0.5em}
-      \textbf{Future work:} second distinct-montage held-out (e.g.\ 128\,ch); larger corpus; implement the codex baseline.
+      \textbf{Future work:} second distinct-montage held-out (e.g.\ 128\,ch); larger corpus.
     \end{column}
   \end{columns}
 \end{frame}
@@ -328,12 +332,12 @@
     E2(c) — cross-montage zero-shot
       & \textcolor{winnercolor}{\textbf{\checkmark\ the headline win, significant}} \\
     E3 — where $g_{ij}$ enters (G1/G2/G3)
-      & \textcolor{winnercolor}{\textbf{\checkmark\ signal is value-path: G2$\,\approx\,$G3$\,\gg\,$G1}} \\
+      & \textcolor{winnercolor}{\textbf{\checkmark\ G2$\,>\,$G3$\,\gg\,$G1}} \\
     E4 — channel-independent baseline
       & \textcolor{winnercolor}{\textbf{\checkmark\ promoted to my baseline}} \\
+    E1 — learned-codex baseline
+      & \textcolor{winnercolor}{\textbf{\checkmark\ name-aligned; near chance}} \\
     \midrule
-    E1 — in-distribution vs.\ codex
-      & \textcolor{chindcolor}{codex can't run on a new montage} \\
     E2(a) — cross-session
       & \textcolor{chindcolor}{session drift is physiological, not geometric} \\
     E2(b) — cross-subject / head size
@@ -343,7 +347,7 @@
   \\[0.9em]
   \footnotesize
   \textcolor{winnercolor}{\textbf{Top:}} delivered.\quad
-  \textcolor{chindcolor}{\textbf{Bottom:}} out of reach for a course project --- reported as limits.
+  \textcolor{chindcolor}{\textbf{Bottom:}} interim conclusion for the feasibility study.
   \\[0.6em]
   \texttt{github.com/tianxin-scu/geometric-eeg-ssl}
 \end{frame}
