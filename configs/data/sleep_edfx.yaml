@@ -1,0 +1,7 @@
+# Sleep EDF-X dataset config
+seed: 0
+dataset: sleep_edfx
+root: TODO(author): set local dataset path
+subjects: all
+sampling_rate: 100
+window_length: 30

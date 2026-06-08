@@ -1,0 +1,61 @@
+# Pretraining with the pos_only geometric descriptor.
+#
+# Identical to default.yaml except ablation.geom_descriptor = pos_only,
+# i.e. the geometric MLP sees g_ij = [p_i, p_j] (R^6) instead of the full
+# [p_i, p_j, p_i-p_j, ||p_i-p_j||] (R^10). Ablation: does absolute position
+# alone carry the cross-montage signal, without the displacement/distance
+# the displacement/distance terms?
+#
+# Signal cache fingerprint excludes the ablation section, so this reuses the
+# same cached signals as default.
+
+preprocess:
+  bandpass_hz: [0.5, 45.0]
+  resample_hz: 200
+  epoch_length_s: 4.0
+  detrend: linear
+  reference: native
+  ica: false
+  montage: standard_1005
+  normalize: per_epoch_zscore
+  coord_normalize: true            # ignored; always uses fixed-scale
+
+ablation:
+  geometry_injection: G3           # headline uses both score-bias and value-mod
+  geom_descriptor: pos_only        # <-- the only change vs default
+  use_codex: false
+  lambda_recon: 1.0
+  mask_ratio: 0.5
+  mask_scheme: temporal            # spatial masking dropped; temporal only
+
+arch:
+  d_model: 256
+  patch_samples: 50
+  patch_stride: 50
+  n_heads_spatial: 8
+  n_layers_spatial: 2
+  n_heads_temporal: 8
+  n_layers_temporal: 4
+  mlp_ratio: 4.0
+  dropout: 0.0
+  temporal_posemb: learned
+  geom_mlp_hidden: 32
+
+artifact:
+  pretrain:
+    clip_sigma: 20.0
+  eval:
+    autoreject: false
+    amplitude_reject_uv: 0.0
+
+train:
+  batch_size: 64
+  lr: 1.0e-4
+  weight_decay: 0.01
+  n_epochs: 100
+  lr_warmup_epochs: 10
+  tau_base: 0.996
+  tau_final: 1.0
+  lambda_R: 1.0
+
+version: "1.0"

@@ -1,0 +1,7 @@
+# PhysioNet motor imagery dataset config
+seed: 0
+dataset: physionet_mi
+root: TODO(author): set local dataset path
+subjects: all
+sampling_rate: 128
+window_length: 32

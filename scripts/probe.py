@@ -1,45 +1,34 @@
-"""Linear probing script for evaluating pretrained EEG SSL representations.
+"""Linear probe evaluation for cross-montage checkpoints.
 
-Loads a pretrained online backbone, freezes it, extracts mean-pooled
-temporal representations (B, T_p, d_model) -> (B, d_model), then fits a
-scikit-learn LogisticRegression probe.
+Loads the `Backbone` + `GeometricSpatialEncoder` stack and recomputes channel
+positions with the fixed-scale normalizer
+(`src/geo/preprocess.ch_pos_from_names`).
 
-Evaluation protocols:
+Self-configuring: given a checkpoint dir containing `run.txt`, the
+variant (geometric/chind) and held-out dataset are read from that sidecar,
+so the headline runs need no extra flags:
 
-  - loso:                  leave-one-subject-out (default). Works on any
-                           dataset with multiple subjects.
-  - within_subject_night:  train probe on night==1, test on night==2,
-                           per subject. Sleep-EDFx only (uses the loader's
-                           5th return value).
+    python scripts/probe.py --checkpoint runs/pretrain/geometric_no_bcic/epoch_0099.pt
 
-Datasets (dispatch table in `_DATASETS`):
+The held-out dataset is the one to probe (zero-shot): the encoder never
+saw its montage during pretraining.
 
-  - physionet_mi:  64-channel, 4-class motor imagery (default)
-  - bcic_2b:       3-channel, 2-class motor imagery — used for cross-montage
-                   transfer (E2c). Set `--dataset bcic_2b` when the checkpoint
-                   was pretrained on PhysioNet MI and being probed on BCIC-2B.
-  - sleep_edfx:    2-channel, 5-class sleep staging — used for E2a.
+  - physionet_mi : LOSO
+  - bcic_2b      : LOSO
+  - sleep_edfx   : within-subject night split (train night 1, test night 2)
 
-Cross-montage transductive caveat:
-  When a 64-channel codex checkpoint is probed on a smaller montage, the
-  codex table has no entries for the new layout. Two fallbacks per the
-  proposal §5/E2c:
-    --codex-fallback random:  re-init the codex for the new M
-    --codex-fallback name:    EEGPT-style name-aligned gather. Copy source
-                              codex rows for electrodes whose channel name
-                              matches the source montage; random-init the rest.
-                              Requires --source-dataset (the pretraining
-                              dataset) to recover the source name ordering.
-    --codex-fallback nn:      geometric nearest-neighbor copy from source
-                              positions (not implemented; falls back to random
-                              with a warning if requested).
+Feature pooling: the backbone returns per-electrode per-time-step
+tokens (B, M, T_p, d). The probe mean-pools over BOTH electrodes and time
+to a fixed (B, d) summary -- montage-size-invariant, which is what lets a
+probe train on a held-out montage the encoder never saw.
 
-Usage:
-    python scripts/probe.py \
-        --checkpoint runs/pretrain/g1_pilot/epoch_0099.pt \
-        --dataset physionet_mi \
-        --eval-protocol loso \
-        --output runs/pretrain/g1_pilot/probe_results.json
+NOTE on eval scale: by default this probes ALL subjects of the held-out
+dataset (stable BAC). The local 9-subject caches built for pretraining are
+NOT enough for phys/sleep eval -- the loader will download/preprocess the
+full population on first run. Use --subjects to probe a subset for a quick
+pipeline check.
+
+Output JSON schema is shared with the results aggregation step.
 """
 
 from __future__ import annotations
@@ -47,19 +36,21 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import warnings
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 _src = Path(__file__).resolve().parents[1] / "src"
 sys.path.insert(0, str(_src))
 
-from typing import Optional
-
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
+from sklearn.metrics import (
+    balanced_accuracy_score,
+    cohen_kappa_score,
+    confusion_matrix,
+    f1_score,
+)
 from sklearn.preprocessing import StandardScaler
 
 from src.config import Config
@@ -68,9 +59,9 @@ from src.datasets.bcic_2b import BCIC2B
 from src.datasets.physionet_mi import EXCLUDED_SUBJECTS, PhysioNetMI
 from src.datasets.sleep_edfx import ALL_SUBJECTS as SLEEPEDFX_SUBJECTS
 from src.datasets.sleep_edfx import SleepEDFx
-from src.model.backbone import Backbone
-from src.model.geometric_attention import GeometricSpatialEncoder
-from src.model.transductive_baseline import TransductiveSpatialEncoder
+from src.geo.model.backbone import Backbone
+from src.geo.model.geometric_attention import GeometricSpatialEncoder
+from src.geo.preprocess import ch_pos_from_names
 
 
 # ---------------------------------------------------------------------------
@@ -82,30 +73,56 @@ _DATASETS = {
         "loader_cls": PhysioNetMI,
         "all_subjects": lambda: [s for s in range(1, 110) if s not in EXCLUDED_SUBJECTS],
         "has_night": False,
+        "default_protocol": "loso",
     },
     "bcic_2b": {
         "loader_cls": BCIC2B,
         "all_subjects": lambda: list(BCIC2B_SUBJECTS),
         "has_night": False,
+        "default_protocol": "loso",
     },
     "sleep_edfx": {
         "loader_cls": SleepEDFx,
         "all_subjects": lambda: list(SLEEPEDFX_SUBJECTS),
         "has_night": True,
+        "default_protocol": "within_subject_night",
     },
 }
 
 
 def _load_one_subject(dataset: str, subject: int, cfg: Config):
-    """Returns (X, y, ch_pos, ch_names, night_or_None)."""
+    """Load one subject; recompute ch_pos with the fixed-scale normalizer.
+
+    Returns (X, y, ch_pos, night_or_None). The loader's own ch_pos is
+    discarded -- the model must use the shared-frame coordinates derived from
+    ch_names, not the per-montage coords the cache stored.
+    """
     spec = _DATASETS[dataset]
     loader = spec["loader_cls"](subjects=[subject], cfg=cfg, mode="eval", verbose=False)
     out = loader.load()
     if spec["has_night"]:
-        X, y, ch_pos, ch_names, night = out
-        return X, y, ch_pos, ch_names, night
-    X, y, ch_pos, ch_names = out
-    return X, y, ch_pos, ch_names, None
+        X, y, _cp, ch_names, night = out
+    else:
+        X, y, _cp, ch_names = out
+        night = None
+    ch_pos = ch_pos_from_names(ch_names, dataset=dataset)
+    return X, y, ch_pos, night
+
+
+# ---------------------------------------------------------------------------
+# Run-spec sidecar
+# ---------------------------------------------------------------------------
+
+def _read_run_spec(ckpt_dir: Path) -> dict:
+    """Parse run.txt (variant, held_out, ...) if present."""
+    spec_path = ckpt_dir / "run.txt"
+    spec: dict[str, str] = {}
+    if spec_path.exists():
+        for line in spec_path.read_text().splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1)
+                spec[k.strip()] = v.strip()
+    return spec
 
 
 # ---------------------------------------------------------------------------
@@ -115,29 +132,25 @@ def _load_one_subject(dataset: str, subject: int, cfg: Config):
 def _parse_args(argv=None):
     p = argparse.ArgumentParser(description="Linear probe evaluation.")
     p.add_argument("--checkpoint", required=True)
-    p.add_argument("--config", default=None)
-    p.add_argument("--dataset", default="physionet_mi", choices=sorted(_DATASETS))
-    p.add_argument("--eval-protocol", default="loso",
-                   choices=["loso", "within_subject_night"])
-    p.add_argument("--subjects", default=None)
+    p.add_argument("--config", default=None,
+                   help="Default: <ckpt dir>/config.yaml.")
+    p.add_argument("--dataset", default=None, choices=sorted(_DATASETS),
+                   help="Held-out dataset to probe. Default: read 'held_out' "
+                        "from <ckpt dir>/run.txt.")
+    p.add_argument("--variant", default=None, choices=["geometric", "chind"],
+                   help="Spatial-encoder variant. Default: read 'variant' "
+                        "from run.txt.")
+    p.add_argument("--eval-protocol", default=None,
+                   choices=["loso", "within_subject_night"],
+                   help="Default: per-dataset (loso for phys/bcic, "
+                        "within_subject_night for sleep).")
+    p.add_argument("--subjects", default=None,
+                   help="Subset like '1,2,5-9'. Default: all subjects of the "
+                        "held-out dataset.")
     p.add_argument("--device", default=None)
     p.add_argument("--output", default=None)
     p.add_argument("--max-iter", type=int, default=1000)
-    p.add_argument("--codex-fallback", default="random",
-                   choices=["random", "nn", "name"],
-                   help="When the checkpoint codex size != target n_electrodes, "
-                        "how to handle the mismatch. Only relevant for "
-                        "use_codex=True. 'random' re-inits the target codex; "
-                        "'name' does an EEGPT-style name-aligned gather (copy "
-                        "source codex rows for electrodes whose channel name "
-                        "matches, random-init the rest); 'nn' (geometric "
-                        "nearest-neighbor) is not implemented.")
-    p.add_argument("--source-dataset", default="physionet_mi",
-                   choices=sorted(_DATASETS),
-                   help="Dataset the checkpoint was pretrained on. Used by "
-                        "--codex-fallback name to recover the source montage's "
-                        "channel-name ordering (the codex table is positional, "
-                        "so the names are read from one subject of this dataset).")
+    p.add_argument("--batch-size", type=int, default=64)
     return p.parse_args(argv)
 
 
@@ -157,161 +170,33 @@ def _parse_subjects(spec: str):
 # Backbone construction
 # ---------------------------------------------------------------------------
 
-def _build_backbone(cfg: Config, n_electrodes: int) -> Backbone:
+def _geom_mode(cfg: Config, variant: str) -> str:
+    if variant == "geometric":
+        return cfg.ablation.geometry_injection.lower()
+    if variant == "chind":
+        return "none"
+    raise ValueError(f"unknown variant: {variant!r}")
+
+
+def _build_backbone(cfg: Config, variant: str) -> Backbone:
     arch = cfg.arch
-    abl = cfg.ablation
-    if abl.use_codex:
-        spatial = TransductiveSpatialEncoder(
-            n_electrodes=n_electrodes,
-            d_model=arch.d_model,
-            n_heads=arch.n_heads_spatial,
-            n_layers=arch.n_layers_spatial,
-            dropout=arch.dropout,
-        )
-    else:
-        spatial = GeometricSpatialEncoder(
-            d_model=arch.d_model,
-            n_heads=arch.n_heads_spatial,
-            n_layers=arch.n_layers_spatial,
-            geometry_injection=abl.geometry_injection.lower(),
-            geom_mlp_hidden=arch.geom_mlp_hidden,
-            dropout=arch.dropout,
-        )
+    spatial = GeometricSpatialEncoder(
+        d_model=arch.d_model,
+        n_heads=arch.n_heads_spatial,
+        n_layers=arch.n_layers_spatial,
+        geometry_injection=_geom_mode(cfg, variant),
+        geom_mlp_hidden=arch.geom_mlp_hidden,
+        dropout=arch.dropout,
+        descriptor=cfg.ablation.geom_descriptor,
+    )
     return Backbone(spatial, arch=arch)
 
 
-def _norm_ch(name: str) -> str:
-    """Normalize a channel name for montage-agnostic matching.
-
-    PhysioNet names come out of ``eegbci.standardize`` as standard 10-05 labels
-    (e.g. ``C3``, ``Cz``); MOABB datasets use the same labels but case/trailing
-    punctuation can drift across loaders. Upper-casing and stripping trailing
-    dots makes ``Cz`` match ``CZ`` / ``Cz.`` without risking collisions between
-    distinct electrodes.
-    """
-    return name.upper().rstrip(".")
-
-
-def _name_align_codex(
-    backbone: Backbone,
-    online_state: dict,
-    ckpt_codex_keys: list[str],
-    source_ch_names: Optional[list[str]],
-    target_ch_names: Optional[list[str]],
-) -> None:
-    """EEGPT-style name-aligned codex transfer (in-place on ``online_state``).
-
-    For each target electrode whose channel name appears in the source montage,
-    copy that source codex row; electrodes with no source match keep the target
-    codex's fresh random init. Rewrites the codex table entry in
-    ``online_state`` to the target shape so ``load_state_dict`` picks it up
-    cleanly (no dropped key, no size mismatch).
-
-    Only the full ``codex.table`` formulation is supported — the trained
-    checkpoints use it. Low-rank (U/V) codex transfer raises.
-    """
-    if source_ch_names is None or target_ch_names is None:
-        raise ValueError(
-            "codex_fallback='name' requires both source and target channel "
-            "names. Pass --source-dataset and ensure the eval loader returns "
-            "ch_names."
-        )
-    table_keys = [k for k in ckpt_codex_keys if k.endswith("codex.table")]
-    if len(table_keys) != 1:
-        raise NotImplementedError(
-            f"name-aligned gather supports only a full codex.table; got codex "
-            f"keys {ckpt_codex_keys}. Low-rank (U/V) codex transfer is not "
-            f"implemented."
-        )
-    key = table_keys[0]
-    src_table = online_state[key]  # (src_M, d)
-    if src_table.shape[0] != len(source_ch_names):
-        raise ValueError(
-            f"source codex has {src_table.shape[0]} rows but "
-            f"{len(source_ch_names)} source channel names were provided."
-        )
-    # Start from the target codex's fresh random init so misses stay random.
-    target_table = backbone.spatial.codex.table.data.clone()
-    if target_table.shape[0] != len(target_ch_names):
-        raise ValueError(
-            f"target codex has {target_table.shape[0]} rows but "
-            f"{len(target_ch_names)} target channel names were provided."
-        )
-    name_to_row = {_norm_ch(n): i for i, n in enumerate(source_ch_names)}
-    hits, misses = [], []
-    for j, name in enumerate(target_ch_names):
-        src_i = name_to_row.get(_norm_ch(name))
-        if src_i is not None:
-            target_table[j] = src_table[src_i].to(target_table.dtype)
-            hits.append(name)
-        else:
-            misses.append(name)
-    online_state[key] = target_table  # target-shaped -> loads cleanly
-    print(f"  name-aligned codex: {len(hits)}/{len(target_ch_names)} electrodes "
-          f"matched by name; {len(misses)} random-init "
-          f"[{', '.join(misses) if misses else 'none'}]")
-
-
-def _load_backbone(
-    ckpt_path: Path,
-    cfg: Config,
-    n_electrodes: int,
-    device: torch.device,
-    codex_fallback: str = "random",
-    target_ch_names: Optional[list[str]] = None,
-    source_ch_names: Optional[list[str]] = None,
-) -> Backbone:
-    """Load a pretrained backbone; handle codex-size mismatch for cross-montage."""
-    state = torch.load(ckpt_path, map_location=device)
-    online_state = state["online_backbone"]
-
-    backbone = _build_backbone(cfg, n_electrodes).to(device)
-    use_codex = cfg.ablation.use_codex
-
-    # Cross-montage codex handling: source M (from ckpt) may differ from target M.
-    if use_codex:
-        ckpt_codex_keys = [k for k in online_state if "codex" in k]
-
-        if ckpt_codex_keys:
-            src_M = None
-            for k in ckpt_codex_keys:
-                shape = online_state[k].shape
-                if shape[0] not in (None,):
-                    src_M = shape[0]
-                    break
-            if src_M is not None and src_M != n_electrodes:
-                print(f"Cross-montage codex: ckpt M={src_M}, target M={n_electrodes}; "
-                      f"fallback={codex_fallback}")
-                if codex_fallback == "name":
-                    _name_align_codex(
-                        backbone, online_state, ckpt_codex_keys,
-                        source_ch_names=source_ch_names,
-                        target_ch_names=target_ch_names,
-                    )
-                else:
-                    if codex_fallback == "nn":
-                        warnings.warn(
-                            "codex_fallback='nn' is not implemented; falling back "
-                            "to random init of target codex (proposal §5 caveat). "
-                            "Use --codex-fallback name for EEGPT-style name "
-                            "alignment.",
-                            RuntimeWarning,
-                        )
-                    # Drop checkpoint codex entries; target codex stays fresh
-                    # random init.
-                    for k in ckpt_codex_keys:
-                        online_state.pop(k, None)
-
-    missing, unexpected = backbone.load_state_dict(online_state, strict=False)
-    if unexpected:
-        print(f"  warning: unexpected keys ignored: {unexpected[:3]}{'...' if len(unexpected) > 3 else ''}")
-    if missing:
-        # Only allow missing keys when we intentionally dropped a codex.
-        dropped_ok = all("codex" in k for k in missing)
-        if not dropped_ok:
-            raise RuntimeError(f"Unexpected missing keys: {missing}")
-        print(f"  codex re-initialized at target M={n_electrodes}: {len(missing)} keys")
-
+def _load_backbone(ckpt_path: Path, cfg: Config, variant: str,
+                   device: torch.device) -> Backbone:
+    state = torch.load(ckpt_path, map_location=device, weights_only=False)
+    backbone = _build_backbone(cfg, variant).to(device)
+    backbone.load_state_dict(state["online_backbone"])
     backbone.eval()
     for p in backbone.parameters():
         p.requires_grad_(False)
@@ -328,138 +213,130 @@ def extract_features(
     X: np.ndarray,
     ch_pos: np.ndarray,
     device: torch.device,
+    uses_geometry: bool,
     batch_size: int = 64,
 ) -> np.ndarray:
-    """Mean-pool the temporal output of a frozen backbone."""
-    ch_pos_t = torch.from_numpy(ch_pos).to(device)
+    """Frozen backbone -> (B, M, T_p, d) -> mean over (M, T_p) -> (B, d)."""
     bias_tables = val_tables = None
-    if backbone.uses_geometry:
+    if uses_geometry:
+        ch_pos_t = torch.from_numpy(ch_pos).to(device)
         bias_tables, val_tables = backbone.precompute_geom_tables(ch_pos_t)
     N = X.shape[0]
     feats = []
     for i in range(0, N, batch_size):
         x_batch = torch.from_numpy(X[i : i + batch_size]).to(device)
         z = backbone(x_batch, bias_tables=bias_tables, value_tables=val_tables)
-        feats.append(z.mean(dim=1).cpu().numpy())
+        feats.append(z.mean(dim=(1, 2)).cpu().numpy())  # (b, M, T_p, d) -> (b, d)
     return np.concatenate(feats, axis=0)
 
 
 # ---------------------------------------------------------------------------
-# Metrics
+# Metrics + probe fit
 # ---------------------------------------------------------------------------
 
-def _compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
+def _compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, labels) -> dict:
+    # confusion_matrix rows = true class, cols = predicted class, in `labels`
+    # order. Row-normalizing gives per-class recall; their mean is the BAC.
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
     return {
         "balanced_accuracy": float(balanced_accuracy_score(y_true, y_pred)),
         "cohens_kappa":      float(cohen_kappa_score(y_true, y_pred)),
         "weighted_f1":       float(f1_score(y_true, y_pred, average="weighted",
                                             zero_division=0)),
+        "confusion_matrix":  cm.astype(int).tolist(),
     }
 
 
-def _fit_and_score(train_feats, train_y, test_feats, test_y, max_iter):
+def _fit_and_score(train_feats, train_y, test_feats, test_y, max_iter, labels):
     scaler = StandardScaler()
     train_feats = scaler.fit_transform(train_feats)
     test_feats = scaler.transform(test_feats)
-    clf = LogisticRegression(max_iter=max_iter, C=1.0, solver="lbfgs", n_jobs=-1)
+    clf = LogisticRegression(max_iter=max_iter, C=1.0, solver="lbfgs")
     clf.fit(train_feats, train_y)
     y_pred = clf.predict(test_feats)
-    return _compute_metrics(test_y, y_pred)
+    return _compute_metrics(test_y, y_pred, labels)
 
 
 # ---------------------------------------------------------------------------
-# LOSO evaluation (generic over dataset)
+# LOSO evaluation
 # ---------------------------------------------------------------------------
 
-def loso_eval(
-    subjects: list[int],
-    dataset: str,
-    cfg: Config,
-    backbone: Backbone,
-    device: torch.device,
-    max_iter: int,
-) -> dict:
-    """Leave-one-subject-out linear probe."""
+def loso_eval(subjects, dataset, cfg, backbone, device, uses_geometry,
+              max_iter, batch_size) -> dict:
     print(f"LOSO over {len(subjects)} subjects on {dataset} ...")
 
-    # Load all subjects once.
-    per_subject: dict[int, tuple[np.ndarray, np.ndarray]] = {}
-    ch_pos_ref = None
+    per_subject_feats: dict[int, tuple[np.ndarray, np.ndarray]] = {}
     for subj in subjects:
-        X_s, y_s, ch_pos_s, _, _ = _load_one_subject(dataset, subj, cfg)
-        if ch_pos_ref is None:
-            ch_pos_ref = ch_pos_s
-        per_subject[subj] = (X_s, y_s)
+        X_s, y_s, ch_pos_s, _ = _load_one_subject(dataset, subj, cfg)
+        feats = extract_features(backbone, X_s, ch_pos_s, device,
+                                 uses_geometry, batch_size)
+        per_subject_feats[subj] = (feats, y_s)
         print(f"  subject {subj}: {X_s.shape[0]} epochs")
 
-    assert ch_pos_ref is not None
+    # Fixed label order shared by every subject's confusion matrix, so the
+    # per-subject matrices are summable into one dataset-level matrix.
+    labels = sorted(np.unique(np.concatenate(
+        [y for _, y in per_subject_feats.values()])).tolist())
+
     per_subject_results = {}
     bac_list = []
-
+    cm_total = np.zeros((len(labels), len(labels)), dtype=np.int64)
     for test_subj in subjects:
-        train_X = np.concatenate(
-            [per_subject[s][0] for s in subjects if s != test_subj], axis=0
-        )
+        train_feats = np.concatenate(
+            [per_subject_feats[s][0] for s in subjects if s != test_subj], axis=0)
         train_y = np.concatenate(
-            [per_subject[s][1] for s in subjects if s != test_subj], axis=0
-        )
-        test_X, test_y = per_subject[test_subj]
-        train_feats = extract_features(backbone, train_X, ch_pos_ref, device)
-        test_feats = extract_features(backbone, test_X, ch_pos_ref, device)
-        metrics = _fit_and_score(train_feats, train_y, test_feats, test_y, max_iter)
+            [per_subject_feats[s][1] for s in subjects if s != test_subj], axis=0)
+        test_feats, test_y = per_subject_feats[test_subj]
+        metrics = _fit_and_score(train_feats, train_y, test_feats, test_y,
+                                 max_iter, labels)
         per_subject_results[test_subj] = metrics
         bac_list.append(metrics["balanced_accuracy"])
+        cm_total += np.array(metrics["confusion_matrix"], dtype=np.int64)
         print(f"  subj {test_subj:3d} | BAC={metrics['balanced_accuracy']:.3f}  "
-              f"κ={metrics['cohens_kappa']:.3f}")
+              f"kappa={metrics['cohens_kappa']:.3f}")
 
     bac_arr = np.array(bac_list)
     aggregate = {
         "bac_mean": float(bac_arr.mean()),
         "bac_std": float(bac_arr.std()),
         "n_subjects": len(subjects),
+        "labels": labels,
+        "confusion_matrix": cm_total.tolist(),
     }
-    print(f"\nLOSO BAC: {aggregate['bac_mean']:.3f} ± {aggregate['bac_std']:.3f}")
+    print(f"\nLOSO BAC: {aggregate['bac_mean']:.3f} +/- {aggregate['bac_std']:.3f}")
     return {"per_subject": per_subject_results, "aggregate": aggregate}
 
 
 # ---------------------------------------------------------------------------
-# Within-subject night split (E2a)
+# Within-subject night split (sleep_edfx)
 # ---------------------------------------------------------------------------
 
-def within_subject_eval(
-    subjects: list[int],
-    dataset: str,
-    cfg: Config,
-    backbone: Backbone,
-    device: torch.device,
-    max_iter: int,
-) -> dict:
-    """Per subject, train probe on night==1, test on night==2.
-
-    Only meaningful for datasets where the loader returns a `night` array
-    (sleep_edfx). Skips subjects missing either night.
-    """
+def within_subject_eval(subjects, dataset, cfg, backbone, device,
+                        uses_geometry, max_iter, batch_size) -> dict:
     if not _DATASETS[dataset]["has_night"]:
-        raise ValueError(f"dataset {dataset!r} has no night labels; use --eval-protocol loso")
+        raise ValueError(f"dataset {dataset!r} has no night labels; use loso")
 
     print(f"Within-subject night split over {len(subjects)} subjects on {dataset} ...")
+    # Sleep staging has a fixed class set (0..4); pin the label order so every
+    # subject's confusion matrix is summable regardless of which stages appear.
+    labels = list(range(5))
     per_subject_results = {}
     bac_list = []
-    ch_pos_ref = None
-
+    cm_total = np.zeros((len(labels), len(labels)), dtype=np.int64)
     for subj in subjects:
-        X_s, y_s, ch_pos_s, _, night_s = _load_one_subject(dataset, subj, cfg)
-        if ch_pos_ref is None:
-            ch_pos_ref = ch_pos_s
+        X_s, y_s, ch_pos_s, night_s = _load_one_subject(dataset, subj, cfg)
         n1 = night_s == 1
         n2 = night_s == 2
         if not n1.any() or not n2.any():
-            print(f"  subj {subj:3d} | SKIP (missing night data: n1={n1.sum()}, n2={n2.sum()})")
+            print(f"  subj {subj:3d} | SKIP (n1={n1.sum()}, n2={n2.sum()})")
             continue
-        feats = extract_features(backbone, X_s, ch_pos_ref, device)
-        metrics = _fit_and_score(feats[n1], y_s[n1], feats[n2], y_s[n2], max_iter)
+        feats = extract_features(backbone, X_s, ch_pos_s, device,
+                                 uses_geometry, batch_size)
+        metrics = _fit_and_score(feats[n1], y_s[n1], feats[n2], y_s[n2],
+                                 max_iter, labels)
         per_subject_results[subj] = metrics
         bac_list.append(metrics["balanced_accuracy"])
+        cm_total += np.array(metrics["confusion_matrix"], dtype=np.int64)
         print(f"  subj {subj:3d} | n1={n1.sum()} -> n2={n2.sum()} | "
               f"BAC={metrics['balanced_accuracy']:.3f}")
 
@@ -471,8 +348,10 @@ def within_subject_eval(
         "bac_mean": float(bac_arr.mean()),
         "bac_std": float(bac_arr.std()),
         "n_subjects": len(bac_list),
+        "labels": labels,
+        "confusion_matrix": cm_total.tolist(),
     }
-    print(f"\nWithin-subject BAC: {aggregate['bac_mean']:.3f} ± {aggregate['bac_std']:.3f}")
+    print(f"\nWithin-subject BAC: {aggregate['bac_mean']:.3f} +/- {aggregate['bac_std']:.3f}")
     return {"per_subject": per_subject_results, "aggregate": aggregate}
 
 
@@ -483,9 +362,23 @@ def within_subject_eval(
 def main(argv=None):
     args = _parse_args(argv)
     ckpt_path = Path(args.checkpoint)
+    ckpt_dir = ckpt_path.parent
+    run_spec = _read_run_spec(ckpt_dir)
+
+    # Resolve variant + dataset from run.txt unless overridden.
+    variant = args.variant or run_spec.get("variant")
+    if variant is None:
+        raise ValueError(
+            "variant not given and not found in run.txt; pass --variant.")
+    dataset = args.dataset or run_spec.get("held_out")
+    if dataset is None:
+        raise ValueError(
+            "dataset not given and 'held_out' not in run.txt; pass --dataset.")
+    if dataset not in _DATASETS:
+        raise ValueError(f"unknown dataset {dataset!r}")
 
     if args.config is None:
-        args.config = str(ckpt_path.parent / "config.yaml")
+        args.config = str(ckpt_dir / "config.yaml")
     cfg = Config.from_yaml(args.config)
 
     if args.device is not None:
@@ -496,54 +389,46 @@ def main(argv=None):
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
-    print(f"device: {device}")
 
-    spec = _DATASETS[args.dataset]
-    subjects = _parse_subjects(args.subjects) if args.subjects else spec["all_subjects"]()
+    protocol = args.eval_protocol or _DATASETS[dataset]["default_protocol"]
+    subjects = (_parse_subjects(args.subjects) if args.subjects
+                else _DATASETS[dataset]["all_subjects"]())
+    uses_geometry = _geom_mode(cfg, variant) != "none"
+
+    print(f"checkpoint : {ckpt_path}")
+    print(f"variant    : {variant}  (geometry={'on' if uses_geometry else 'off'})")
+    print(f"held-out   : {dataset}  (zero-shot probe)")
+    print(f"protocol   : {protocol}")
+    print(f"subjects   : {len(subjects)}")
+    print(f"device     : {device}")
 
     if args.output is None:
-        args.output = str(ckpt_path.parent / f"probe_results_{args.dataset}_{args.eval_protocol}.json")
+        args.output = str(ckpt_dir / f"probe_{dataset}_{protocol}.json")
 
-    # Discover n_electrodes by loading the first subject. Cheap if cached;
-    # avoids hardcoding M per dataset.
-    print(f"Discovering n_electrodes from {args.dataset} subject {subjects[0]} ...")
-    _, _, ch_pos_probe, target_ch_names, _ = _load_one_subject(
-        args.dataset, subjects[0], cfg
-    )
-    n_electrodes = int(ch_pos_probe.shape[0])
-    print(f"  n_electrodes = {n_electrodes}")
-
-    # For EEGPT-style name-aligned codex transfer, recover the source montage's
-    # channel-name ordering from one subject of the pretraining dataset (the
-    # codex table is positional, so it carries no names itself).
-    source_ch_names = None
-    if args.codex_fallback == "name" and cfg.ablation.use_codex:
-        src_subj = _DATASETS[args.source_dataset]["all_subjects"]()[0]
-        print(f"Reading source channel names from {args.source_dataset} "
-              f"subject {src_subj} ...")
-        _, _, _, source_ch_names, _ = _load_one_subject(
-            args.source_dataset, src_subj, cfg
-        )
-
-    backbone = _load_backbone(
-        ckpt_path, cfg, n_electrodes=n_electrodes, device=device,
-        codex_fallback=args.codex_fallback,
-        target_ch_names=target_ch_names,
-        source_ch_names=source_ch_names,
-    )
+    backbone = _load_backbone(ckpt_path, cfg, variant, device)
     n_params = sum(p.numel() for p in backbone.parameters())
-    print(f"backbone parameters: {n_params:,}  (frozen)")
+    print(f"backbone parameters: {n_params:,}  (frozen)\n")
 
-    if args.eval_protocol == "loso":
-        results = loso_eval(subjects, args.dataset, cfg, backbone, device, args.max_iter)
-    elif args.eval_protocol == "within_subject_night":
-        results = within_subject_eval(subjects, args.dataset, cfg, backbone, device, args.max_iter)
+    if protocol == "loso":
+        results = loso_eval(subjects, dataset, cfg, backbone, device,
+                            uses_geometry, args.max_iter, args.batch_size)
+    elif protocol == "within_subject_night":
+        results = within_subject_eval(subjects, dataset, cfg, backbone, device,
+                                      uses_geometry, args.max_iter, args.batch_size)
     else:
-        raise ValueError(f"unknown eval_protocol {args.eval_protocol!r}")
+        raise ValueError(f"unknown protocol {protocol!r}")
 
+    descriptor = cfg.ablation.geom_descriptor
+    # variant_label distinguishes descriptor ablations of the same variant
+    # (e.g. geometric[full] vs geometric[pos_only]) for results aggregation.
+    variant_label = variant if descriptor == "full" else f"{variant}_{descriptor}"
     results["checkpoint"] = str(ckpt_path)
-    results["dataset"] = args.dataset
-    results["eval_protocol"] = args.eval_protocol
+    results["dataset"] = dataset
+    results["variant"] = variant
+    results["descriptor"] = descriptor
+    results["variant_label"] = variant_label
+    results["held_out"] = dataset
+    results["eval_protocol"] = protocol
     results["config"] = cfg.resolved_dict()
 
     out_path = Path(args.output)

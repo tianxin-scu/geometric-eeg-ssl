@@ -69,9 +69,9 @@ class AblationConfig:
     # "none" = vanilla attention (channel-independent baseline, no geometry).
     geometry_injection: str = "G1"  # "G1" | "G2" | "G3" | "none"
 
-    # v2-only: which geometric descriptor the v2 spatial encoder feeds its
-    # MLPs. "full" = [p_i, p_j, p_i-p_j, ||p_i-p_j||] (R^10, v2 default);
-    # "pos_only" = [p_i, p_j] (R^6). Ignored by v1 (its descriptor is fixed).
+    # Which geometric descriptor the spatial encoder feeds its MLPs.
+    # "full" = [p_i, p_j, p_i-p_j, ||p_i-p_j||] (R^10, default);
+    # "pos_only" = [p_i, p_j] (R^6).
     geom_descriptor: str = "full"  # "full" | "pos_only"
 
     # O2: codex on/off. False = geometric encoder (default, headline).
@@ -291,7 +291,7 @@ class Config:
     ablation: AblationConfig = field(default_factory=AblationConfig)
     artifact: ArtifactConfig = field(default_factory=ArtifactConfig)
     train: TrainConfig = field(default_factory=TrainConfig)
-    version: str = "v1"
+    version: str = "1.0"
 
     def __post_init__(self) -> None:
         # Cross-tier sanity: architecture's patching must agree with
@@ -342,5 +342,5 @@ class Config:
                 eval=EvalArtifactConfig(**data["artifact"]["eval"]),
             ),
             train=TrainConfig(**data.get("train", {})),
-            version=data.get("version", "v1"),
+            version=data.get("version", "1.0"),
         )

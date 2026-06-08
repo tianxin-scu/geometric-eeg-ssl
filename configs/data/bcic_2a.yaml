@@ -1,0 +1,7 @@
+# BCIC IV 2a dataset config
+seed: 0
+dataset: bcic_2a
+root: TODO(author): set local dataset path
+subjects: all
+sampling_rate: 250
+window_length: 32

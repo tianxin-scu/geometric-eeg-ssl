@@ -1,90 +1,33 @@
 # Geometrically Inductive Self-Supervised Learning for EEG
 
-This is the implementation repository for the ECEN 525 Spring 2026 final project. The project explores a self-supervised EEG representation learning framework that replaces per-electrode codex embeddings with geometry-conditioned self-attention, so the same model can adapt more naturally across electrode placements, subjects, and montages. The design borrows the alignment-and-reconstruction training recipe from recent EEG foundation-model work, but the repository is for a course project, not a publication.
+ECEN 525 (Brain–Computer Interaction), Spring 2026 — final project. Sole author:
+Tianxin Zhou.
 
-Status: in progress (Spring 2026 ECEN 525 final project).
+A self-supervised EEG encoder whose spatial attention is conditioned on a
+geometric descriptor `g_ij` (built from 3-D scalp coordinates) instead of a
+learned per-electrode codex. Because the attention function carries no
+per-electrode parameters, the trained encoder applies to **any montage given
+coordinates alone**, and can be frozen and evaluated **zero-shot on a montage
+never seen in pretraining**.
 
-## Setup
+**Headline (zero-shot BCIC-2B, pretrained on 156 mixed subjects):** geometric
+0.545 BAC beats the channel-independent baseline 0.509 by +0.036 (p=0.023,
+7/9 subjects); the codex baseline, evaluated by name-aligned transfer, reaches
+only 0.522.
 
-```bash
-git clone <your-github-url> geometric-eeg-ssl
-cd geometric-eeg-ssl
-pip install -e ".[dev]"
+This is the **report-drafting snapshot** — current content only. For
+orientation read [CLAUDE.md](CLAUDE.md) and [docs/project_summary.md](docs/project_summary.md);
+the draft lives in [final_report/report.md](final_report/report.md).
+
+## Pipeline
+
+```
+scripts/pretrain.py   # mixed-corpus pretrain (variant × leave-one-montage-out split)
+scripts/probe.py      # frozen zero-shot linear probe on the held-out montage
+scripts/results.py    # aggregate per-checkpoint JSONs -> results/{n9,n78}/headline.txt
 ```
 
-Datasets are not auto-downloaded. Use the dataset preparation utilities and download the required EEG corpora through the official MNE and MOABB workflows, then point the YAML configs at your local paths.
+## Dependencies
 
-## Reproducing Experiments
-
-```bash
-python scripts/pretrain.py --config configs/pretrain/geometric_g1.yaml
-python scripts/probe.py --config configs/eval/e1_indist_probe.yaml
-python scripts/run_e1.py --config configs/eval/e1_indist_probe.yaml
-python scripts/run_e2.py --config configs/eval/e2a_cross_session.yaml
-python scripts/run_e5.py --config configs/eval/e5_g_variants.yaml
-python scripts/run_e7.py --config configs/eval/e7_channel_indep.yaml
-```
-
-## Repo Layout
-
-```text
-geometric-eeg-ssl/
-├── README.md
-├── LICENSE                 # MIT
-├── .gitignore
-├── pyproject.toml          # setuptools backend
-├── configs/
-│   ├── pretrain/
-│   │   ├── geometric_g1.yaml
-│   │   ├── geometric_g2.yaml
-│   │   ├── geometric_g3.yaml
-│   │   ├── transductive_codex.yaml
-│   │   └── channel_independent.yaml
-│   ├── data/
-│   │   ├── physionet_mi.yaml
-│   │   ├── bcic_2a.yaml
-│   │   ├── bcic_2b.yaml
-│   │   └── sleep_edfx.yaml
-│   └── eval/
-│       ├── e1_indist_probe.yaml
-│       ├── e2a_cross_session.yaml
-│       ├── e2b_loso.yaml
-│       ├── e2c_cross_montage.yaml
-│       ├── e5_g_variants.yaml
-│       └── e7_channel_indep.yaml
-├── src/
-│   └── geo_eeg/
-│       ├── __init__.py
-│       ├── data/
-│       ├── models/
-│       ├── losses/
-│       ├── training/
-│       ├── eval/
-│       └── utils/
-├── scripts/
-│   ├── pretrain.py
-│   ├── probe.py
-│   ├── run_e1.py
-│   ├── run_e2.py
-│   ├── run_e5.py
-│   └── run_e7.py
-├── notebooks/
-├── tests/
-│   └── test_smoke.py
-└── results/
-    ├── tables/
-    └── figures/
-```
-
-## Citation / License
-
-MIT License, copyright 2026 Tianxin Zhou.
-
-```bibtex
-@misc{geometric_eeg_ssl_2026,
-  title        = {Geometrically Inductive Self-Supervised Learning for EEG},
-  author       = {Tianxin Zhou},
-  year         = {2026},
-  note         = {ECEN 525 Spring 2026 final project. Citation details to be filled in at submission.}
-}
-```
+MNE-Python, MOABB, PyTorch, scikit-learn, NumPy, PyYAML, SciPy. See
+`pyproject.toml`.

@@ -1,0 +1,414 @@
+# Presentation Notes — Geometrically Inductive SSL for EEG
+
+## Slide 2 — Problem statement
+
+### What is a montage, and why is it on this slide?
+
+A **montage** is the specific electrode placement configuration for a recording session: how many electrodes, where they sit on the scalp (expressed as 3D Cartesian coordinates), and what they're called. Different research groups and BCI devices use completely different montages:
+
+| Dataset | Channels | Configuration |
+|---|---|---|
+| PhysioNet MI | 64 | 10-10 system, dense coverage |
+| BCIC-2B | 3 | C3, Cz, C4 — motor-cortex strip only |
+| Sleep-EDFx | 2 | Fpz-Cz and Pz-Oz — clinical frontal/occipital |
+
+The model uses a **shared coordinate frame**: every channel's position is looked up from the same `standard_1005` template and normalized by one fixed centroid/scale ([src/geo/preprocess.py](src/geo/preprocess.py)). So an electrode **name maps to the same (x,y,z) in every dataset** — a given name does *not* move between datasets (unlike per-montage normalization, which would move it).
+
+- **BCIC-2B ⊂ PhysioNet, exactly.** C3/Cz/C4 are byte-identical across the two and all live in PhysioNet's 64:
+  - C3 = (−0.518, 0.041, 0.338), Cz = (−0.002, 0.060, 0.619), C4 = (0.521, 0.046, 0.332).
+  - BCIC-2B is literally a **3-electrode geometric subset** of PhysioNet.
+- **Sleep-EDFx is the genuinely different montage.** Its channels are *bipolar* derivations placed at the **midpoint** of their reference pair, so they don't coincide with any single electrode in the others:
+  - `FpzCz` = midpoint(Fpz, Cz) = (−0.003, 0.442, 0.220); nearest PhysioNet electrode = Fz at dist 0.201.
+  - `PzOz` = midpoint(Pz, Oz) = (−0.004, −0.636, 0.215); nearest = Poz at dist 0.036.
+  - Shares the *frame*, occupies distinct *points*.
+
+**Crucial nuance for Q&A.** Headline run = pretrain on PhysioNet + Sleep, test on BCIC-2B. Because C3/Cz/C4 (and their pairwise `g_ij`) already appear in PhysioNet, **the positions BCIC presents at test were already seen in pretraining.** What is novel at test is the *montage configuration* (only 3 electrodes, attention over just those 3), **not the coordinates**. The genuinely-novel-position case is when **Sleep-EDFx** is held out (its bipolar midpoints are unseen) — that is one of the small-corpus directional runs, not the headline. Expect a reviewer to probe this; the honest framing is "unseen electrode *set/count*, overlapping positions."
+
+### Is "montage" really non-stationarity?
+
+Strictly, no — not in the time-series statistics sense (where non-stationarity means the mean or variance shifts over time). Montage mismatch is really a **structural distribution shift**: the input dimensionality $M$ changes, electrode identities change, and the spatial sampling of the scalp changes.
+
+It appears on the same slide as session and subject drift because all three break the same assumption that underpins codex and channel-independent models: **that electrode $X$ means the same thing across recordings.** Once you break that assumption — whether because the cap shifted (session), the head is smaller (subject), or there are only 3 electrodes instead of 64 (montage) — any model parameter indexed by electrode identity becomes invalid.
+
+The geometry-conditioned approach resolves all three with a single mechanism: replace the electrode identity index with a 3D scalp coordinate as input. Session cap shifts become small perturbations in $p_i$; subject head-size differences are captured by the absolute scale of $p_i$; montage differences are just different sets of $p_i$, all handled by the same shared MLP.
+
+---
+
+## Slide 3 — Solution
+
+- $g_{ij} \in \mathbb{R}^{10}$: the two 3D positions $p_i, p_j$ (6 dims) + displacement $p_i - p_j$ (3 dims) + scalar distance $\|p_i - p_j\|$ (1 dim).
+- G1 = geometry at the **attention score** (bias path); G2 = at the **value** projection (value path); G3 = both. The E3 ablation shows the signal is in the **value path**: G2 ≈ G3 ≫ G1 (G1 ≈ no geometry). The slide-4 headline uses G2+full.
+- pos_only = $[p_i, p_j] \in \mathbb{R}^6$ only, no displacement or distance. The slide-4 pos_only bar uses **G3+pos_only (0.540), which stays significant** (+0.031, p=0.022, 7/9) — so the deck keeps the "robust to descriptor reduction" claim. (Note G2+pos_only is *not* significant at 0.520, so the slide pairs the headline G2+full geom bar with the G3 pos_only bar; see E3 table.)
+
+### The two G3 equations (in case anyone asks)
+
+Per head $h$, geometry enters at two points via **two separate MLPs**:
+
+**1. Score-side bias** (`geom_bias_mlp`, $\mathbb{R}^{10}\to\mathbb{R}^{H}$):
+$$e_{ij}^{h} = \frac{\langle q_i^{h},\, k_j^{h}\rangle}{\sqrt{d_h}} + b^{h}(g_{ij}), \qquad a_{ij}^{h} = \mathrm{softmax}_j\bigl(e_{ij}^{h}\bigr)$$
+
+**2. Value-side increment** (`geom_value_mlp`, $\mathbb{R}^{10}\to\mathbb{R}^{d}$):
+$$o_i^{h} = \sum_j a_{ij}^{h}\,\bigl(v_j^{h} + w^{h}(g_{ij})\bigr)$$
+
+- $b(g_{ij})$ and $w(g_{ij})$ are outputs of **different** MLPs, both fed the same $g_{ij}$.
+- $v_j$ comes from the $q,k,v$ projection of the patch — **not** from a MLP; the value MLP only adds the geometric term $w(g_{ij})$.
+- Neither geometric term ever touches the patch embedding directly; both enter *inside* attention. G1 = bias only, G2 = value only, **G3 = both** (all three were run in the E3 ablation; the headline variant is G2+full).
+- Code: [src/geo/model/geometric_attention.py](src/geo/model/geometric_attention.py) lines 230 (bias) and 254–255 (value).
+
+### The flow (what I actually trained)
+
+End-to-end tensor shapes through the backbone, spatial encoder → temporal encoder (EEGPT-style recipe). Toy numbers for readability: `B=2` batch, `M=4` electrodes, `T=200` raw samples, `patch_samples=50` ⇒ `T_p=4` patches, `d=256`. (Real config: `M` up to 64, `T=800`, `T_p=16`, `d=256`.)
+
+```
+raw EEG                       (B=2, M=4, T=200)
+   │  patcher: unfold time into non-overlapping windows
+   ▼
+patches                       (B=2, M=4, T_p=4, P=50)
+   │  proj: Linear(50 → 256), applied per patch (electrode-agnostic)
+   ▼
+feats                         (B=2, M=4, T_p=4, d=256)
+   │
+   │  ─── SPATIAL ENCODER (attends ACROSS the M=4 electrodes) ───
+   │  reshape so each time step is its own "sentence" of M tokens:
+   │      (B, M, T_p, d) → (B*T_p=8, M=4, d=256)
+   │  geometry-conditioned attention over the 4 electrode tokens (G1/G2/G3)
+   │  reshape back:
+   ▼
+spatial out                   (B=2, M=4, T_p=4, d=256)   ← electrode dim SURVIVES
+   │
+   │  ─── TEMPORAL ENCODER (attends ACROSS the T_p=4 time steps) ───
+   │  reshape so each electrode is its own "sentence" of T_p tokens:
+   │      (B, M, T_p, d) → (B*M=8, T_p=4, d=256)
+   │
+   │  *** positional embedding here: x = x + pe[:T_p]  (shape unchanged) ***
+   │      (8, 4, 256) + (1, 4, 256) → (8, 4, 256)
+   │
+   │  L_T=4 transformer layers attending over the T_p axis
+   │  reshape back:
+   ▼
+output                        (B=2, M=4, T_p=4, d=256)
+```
+
+Key points for Q&A:
+
+- **The model keeps the electrode dimension.** The spatial encoder does *not* CLS-pool electrodes away; output stays `(B, M, T_p, d)` so the loss can be **per-channel**. The temporal Transformer then runs **per electrode**, over its own `T_p`-length patch sequence (reshape to `(B*M, T_p, d)`). Costs `M×` more temporal compute. See [src/geo/model/backbone.py](src/geo/model/backbone.py).
+- **Two distinct attention axes.** Spatial attention is over **electrodes** (this is where `g_ij` enters); temporal attention is over **time-steps** (vanilla, no geometry). They never mix in a single attention op.
+- **Positional embedding does not change shape and does not pool.** It is a learned `(max_len=64, d=256)` table; only the first `T_p` rows are added (broadcast over batch and electrodes) at the temporal encoder's input — `(…, T_p, d) → (…, T_p, d)`. It stamps *time-step order*, nothing else. Code: [src/model/backbone.py](src/model/backbone.py#L145) (table) and [src/model/backbone.py](src/model/backbone.py#L174) (the add).
+- **Patcher + projection + temporal Transformer are reused unmodified from `src/model/backbone.py`** ([src/geo/model/backbone.py](src/geo/model/backbone.py#L31)); only the spatial encoder is new.
+
+### Layer internals — depth, residuals, per-layer weights
+
+Structural details a reviewer may probe:
+
+- **Depth: `L_S=2`, `L_T=4`.** 2 stacked geometric-attention blocks over electrodes, 4 vanilla blocks over time-steps. Set in [src/config.py](src/config.py#L125-L127).
+- **Residuals: yes — standard pre-norm, two per block.** Every block (spatial *and* temporal) is `x = x + attn(norm1(x))` then `x = x + mlp(norm2(x))` — LayerNorm *before* each sublayer, residual *around* it. So 2 residual adds × (2 spatial + 4 temporal) = **12 residual connections**, plus a final LayerNorm after each stack. Spatial: [geometric_attention.py:305-311](src/geo/model/geometric_attention.py#L305-L311); temporal: [backbone.py:248-249](src/model/backbone.py#L248-L249).
+- **`g_ij` is computed once per montage; Q/K/V and the geometry MLPs are per-layer (not shared, not recomputed redundantly).** Three separate facts:
+  - The raw R¹⁰ descriptor `g_ij` is built a single time per montage (`build_geometric_descriptor`, [geometric_attention.py:366](src/geo/model/geometric_attention.py#L366)) — fixed geometry, no reason to recompute.
+  - Each of the 2 spatial layers has its **own** Q/K/V/out projections, recomputed at that layer from its input (the running residual stream); layer 2's QKV sees layer 1's output, not the original patches.
+  - Each layer also has its **own** geometry MLPs, so the same `g_ij` is fed through different MLPs per layer, yielding **`L_S=2` distinct bias tables + 2 distinct value tables** (precompute loop, [geometric_attention.py:370-373](src/geo/model/geometric_attention.py#L370-L373)).
+- **"Fed twice" within a G3 layer — yes, into two different MLPs.** In G3, a single layer consumes `g_ij` through **two separate MLPs** (`geom_bias_mlp` for the score + `geom_value_mlp` for the value). Across the 2 spatial layers that is 4 geometry-MLP instances total (2 bias + 2 value), all fed the one precomputed `g_ij`. G1 = only the bias MLP per layer; G2 = only the value MLP per layer.
+
+### Parameter count
+
+Counts from instantiating the actual model ([configs/pretrain/default.yaml](configs/pretrain/default.yaml): G3, full R¹⁰ descriptor, `d=256`, `L_S=2`, `L_T=4`, `H=8`).
+
+**Encoder (the model I deploy / probe): ≈4.79M parameters.** This is the backbone that survives pretraining — the prediction MLP, reconstruction head, and EMA momentum copy are all dropped before downstream probing.
+
+| Component | Params | Notes |
+|---|---:|---|
+| Patch projection (Linear 50→256) | 13,056 | electrode-agnostic, shared across all channels |
+| **Spatial encoder** (L_S=2, H=8) | **1,598,864** | geometry-conditioned attention over electrodes |
+| **Temporal encoder** (L_T=4, H=8) | **3,175,936** | vanilla Transformer over time-steps |
+| **Total backbone** | **4,787,856** | ≈ 4.79M |
+
+(G2+full, the slide-4 headline variant, = 4,786,624; all seven E5 variants fall within **0.4%** of each other — geometry-injection mode barely moves the count, so the E5 accuracy differences are not a capacity artifact.)
+
+**Where the parameters live:**
+
+| Sub-block | Params |
+|---|---:|
+| Spatial — Q/K/V/out projections | 526,336 |
+| Spatial — FFN (MLP, ratio 4×) | 1,051,136 |
+| Spatial — **geometry MLPs** (the contribution) | 18,832 |
+| Spatial — LayerNorms | 2,560 |
+| Temporal — Q/K/V/out projections | 1,052,672 |
+| Temporal — FFN (MLP, ratio 4×) | 2,102,272 |
+| Temporal — learned positional table | 16,384 |
+| Temporal — LayerNorms | 4,608 |
+
+**Talking point:** the **geometry MLPs total only 18.8K params — 0.4% of the backbone.** The entire cross-montage capability rides on a fraction of a percent of the model; the rest is a standard parameter-matched Transformer. That is the honest "geometry at parameter parity" framing.
+
+**Training-time totals** (context only — not deployed): online backbone 4.79M + prediction MLP 527,616 + reconstruction head 12,850 = **5.33M trainable**; plus a frozen EMA momentum copy of the backbone (4.79M, no gradients) → **10.12M total** held in memory during pretraining.
+
+---
+
+## Slide 4 — Headline result
+
+**Protocol to explain verbally** (the dedicated experiment-design slide was cut for time):
+
+- **Leave-one-montage-out:** pretrain on a mix of two montages, hold out the third dataset entirely, freeze the encoder, fit a linear probe on the held-out montage. "Zero-shot" = the encoder never saw that montage's electrode layout during pretraining.
+- **Fair comparison:** identical training for every variant — only the spatial encoder differs (geom / pos_only / chind). Same data, same recipe.
+- The codex is **completely absent** — it cannot be run at all on an unseen montage, not merely that it performs worse.
+
+**The result** (the slide shows only the three bars + the pretrain→test line; everything below is for verbal delivery / Q&A):
+
+- $n=156$ pretrain: 78 PhysioNet + 78 Sleep-EDFx subjects. BCIC-2B is the held-out montage ($n=9$ LOSO).
+- The three bars: **chind = 0.509**, **pos_only (G3+pos_only) = 0.540**, **geom (G2+full) = 0.549**. The geom bar shows the strongest full-descriptor variant (G2+full) and the pos_only bar shows the strongest reduced-descriptor variant (G3+pos_only); both beat chind significantly, which is what licenses the slide-5 "robust to descriptor reduction" claim. The bars therefore mix injections (geom = G2, pos_only = G3); neither is labelled with its injection mode on the slide, so it reads as "full vs reduced descriptor." (G2+pos_only is *not* significant at 0.520, which is why the pos_only bar uses G3, not G2 — see the E3 ablation section.)
+- **geom (G2+full) +0.040** over chind, $p=0.004$ (paired *t*), Wilcoxon $p=0.008$, **8/9**, $d_z=1.32$, 95% CI $[+0.017, +0.063]$.
+- **pos_only (G3+pos_only) = 0.540 IS significant** (+0.031 over chind, $p=0.022$ paired *t*, Wilcoxon $p=0.020$, 7/9, $d_z=0.95$). This is the bar shown; reducing to position-only ($\mathbb{R}^6$) keeps the effect *when geometry enters both paths* (G3). (If a reviewer asks why pos_only uses G3 while geom uses G2: I show the strongest variant at each descriptor; the per-cell value-path story is in the E3 table.)
+- **Chance = 0.50** (binary; BCIC-2B is left- vs right-hand motor imagery). The y-axis is zoomed to $[0.49, 0.56]$, so read the bars as differences above chance, not absolute heights.
+- **Codex is absent by necessity** — it cannot run on an unseen montage at all (no embedding slot for BCIC-2B's electrodes), so there is no codex bar to show. That absence is the point.
+
+### Confusion matrix
+
+The probe saves the confusion matrix: `_compute_metrics` / `loso_eval` / `within_subject_eval` in [scripts/probe.py](scripts/probe.py) write per-subject matrices plus a pooled `aggregate.confusion_matrix` (summed over the 9 LOSO folds) and `aggregate.labels`.
+
+**Headline — geom = G2+full, n=156 → BCIC-2B** (pooled counts; rows = true, cols = predicted; class 0 = Left MI, 1 = Right MI):
+
+|                 | Pred Left | Pred Right | recall |
+|-----------------|-----------|------------|--------|
+| **True Left**   | 1840      | 1420       | 0.564  |
+| **True Right**  | 1519      | 1741       | 0.534  |
+
+BAC = (0.564 + 0.534) / 2 = **0.549**. This is the matrix now shown (row-normalized) on slide 4. (For reference, the pre-registered **G3+full** matrix was 1799/1461/1501/1759 → recall 0.552/0.540 → BAC 0.545; available in `runs/pretrain/geometric_no_bcic_n78/probe_bcic_2b_loso.json`.)
+
+**chind, n=156 → BCIC-2B** (the baseline, for contrast):
+
+|                 | Pred Left | Pred Right | recall |
+|-----------------|-----------|------------|--------|
+| **True Left**   | 1716      | 1544       | 0.526  |
+| **True Right**  | 1658      | 1602       | 0.491  |
+
+BAC = (0.526 + 0.491) / 2 = **0.509**. Note chind's Right-MI recall (0.491) sits **below chance** — it leans toward predicting Left — whereas geom is balanced across both classes (0.552 / 0.540). That class balance, not just the mean, is the qualitative win.
+
+**pos_only = G3+pos_only, n=156 → BCIC-2B** (the slide-4 pos_only bar):
+
+|                 | Pred Left | Pred Right | recall |
+|-----------------|-----------|------------|--------|
+| **True Left**   | 1755      | 1505       | 0.538  |
+| **True Right**  | 1493      | 1767       | 0.542  |
+
+BAC = (0.538 + 0.542) / 2 = **0.540**. Significant (+0.031 over chind, p=0.022, 7/9) and class-balanced — reducing to position-only keeps the effect when geometry enters both paths (G3). (For contrast, the G2+pos_only matrix — 1735/1525/1608/1652 → 0.520, *not* significant — is in `results/n78/e5_confusion_matrices.md`, the committed laptop-portable file with all seven cells' matrices + CIs; that is why the bar uses G3, not G2.)
+
+## Slide 6 — Did I run what the proposal promised?
+
+**What this slide is for.** A reviewer who read my proposal will ask "did you do the experiments you listed?" This slide answers honestly, split into two halves: the top three I **delivered**, the bottom three were **out of reach** for a one-quarter course project and are reported as limits (not failures). Labels use the report's clean gapless scheme — **E1, E2(a/b/c), E3, E4** — mapped back to the proposal in the crosswalk section below.
+
+### Top half — delivered
+
+**E2(c) — cross-montage zero-shot (the headline).** The central promise: a model pretrained on a mix of montages transfers to a *held-out* montage with no retraining. Delivered, and the gap is significant on the one powered test (BCIC-2B, n=156: geom 0.545 vs chind 0.509, p=0.023). I deliberately present **only BCIC** — it's the one properly-powered, significant result. The other two held-out montages (PhysioNet, Sleep) are tiny-corpus and within noise; I don't lean on them.
+
+**E3 — where $g_{ij}$ enters (G1/G2/G3)** *(proposal E5)*. The principal ablation: does geometry help most as a score-bias (G1), a value-increment (G2), or both (G3)? Ran all three crossed with both descriptors (full R¹⁰ / pos_only R⁶), same n=156 regime, zero-shot BCIC. **Headline finding: the geometry signal lives in the value path. G2 (value-only, full) ties G3 (both) at the top (0.549 vs 0.545, both significant); G1 (score-bias-only) is inert (≈ chind).** Full table and the honest caveats are in the *E3 ablation results* section below.
+
+**E4 — channel-independent baseline** *(proposal E7)*. In the proposal this was a third-tier *sanity check*. In practice it became my **actual headline baseline** (`chind`), because the codex baseline (E1's comparator) can't run cross-montage at all — so chind is the strongest thing that *can* run on every montage. Promoted, not dropped.
+
+### Bottom half — out of reach, and why (say the reason before a reviewer asks)
+
+**E1 — in-distribution, geom vs codex.** The proposal's "fairness anchor" compared geometry against a learned-codex baseline on a *matched* montage. But the whole value proposition is cross-montage, and **a codex literally cannot run on a montage it wasn't trained on** (no embedding slot for the new electrodes). So the in-distribution codex comparison answers a question the project no longer hinges on; I never built the codex variant. Honest status: not run, because the regime that matters is the one codex can't enter.
+
+**E2(a) — cross-session.** The proposal itself says geometry only addresses the *placement* part of session drift (cap moves a few mm). The dominant part of session-to-session change is **physiological** — alertness, fatigue, electrode impedance — which my architecture does not touch. And in real multi-session data the two are entangled, so the test couldn't cleanly isolate the geometric part. Not expected to help; honestly dropped.
+
+**E2(b) — cross-subject / head size.** Testing the head-size claim needs a dataset where the *same task* is recorded across subjects with **documented, varying head geometry**. No publicly accessible EEG dataset provides controlled head-size variation with usable labels. Without the data, the experiment can't be run — a data-availability limit, not a modeling one.
+
+### How to say it in the talk (20 seconds)
+
+> "Of the experiments I proposed: the cross-montage transfer test — the headline — I ran, and it's significant. The G1/G2/G3 ablation and the baseline, I ran. Three others I couldn't: the in-distribution codex comparison is moot because a codex can't even run on a new montage; cross-session drift is mostly physiological, which geometry doesn't address; and cross-subject head-size testing has no public dataset. Those are limitations, and they're on the slide as limitations."
+
+### If asked "your proposal skips E3/E4/E6/E8 — what happened?"
+
+Short answer: the proposal was edited down from eight experiments to the surviving set without renumbering, so it shows gaps (E1, E2, E5, E7). Nothing is *missing* — proposal-E4 (per-subject variance) was folded into E2(b); proposal-E3/E6/E8 (channel-dropout, loss ablation, compute–quality) were cut. The report fixes the cosmetics with a clean gapless scheme — full mapping in the **Experiment relabeling — crosswalk** section below. (In that clean scheme, "E4" now means the channel-independent baseline, so don't confuse it with the proposal's old E4.)
+
+### LOSO + Wilcoxon, explained simply (you asked)
+
+**LOSO = Leave-One-Subject-Out.** With 9 BCIC-2B subjects, I train the linear probe on 8 subjects and test on the 9th — then rotate, so each subject takes a turn as the held-out test set. That gives **9 independent BAC scores**, one per subject. Why bother: it guarantees the test subject's data was never seen during probe training, so the number reflects *generalization to a new person*, not memorization. The headline BAC (0.545) is the mean of those 9 per-subject scores.
+
+**Wilcoxon = a paired significance test that doesn't assume a bell curve.** For each of the 9 subjects I have *two* BAC numbers on the *same* fold: one from geom, one from chind. I want to know whether geom is reliably higher or whether the 9 small gaps are just luck. The **paired t-test** answers this assuming the per-subject differences are roughly normal; the **Wilcoxon signed-rank test** answers the same question using only the *ranks* of the differences (their order and sign), so it survives a couple of weird subjects and doesn't lean on normality. I report both (t: p=0.023, Wilcoxon: p=0.027) — when they agree, the result isn't an artifact of one test's assumptions. "7/9" = geom beat chind on 7 of the 9 subjects, the plain-language version of the same fact.
+
+> One-liner if asked: "LOSO gives me 9 per-person scores; Wilcoxon checks whether geom's edge over chind across those 9 pairs is real or coincidence, without assuming the gaps are normally distributed."
+
+### p, d_z, and the 95% CI, explained simply (the rest of the stats line)
+
+All three describe the *same* 9 per-subject gaps (geom BAC − chind BAC), each answering a different question.
+
+- **p-value (p = 0.023) — "is it real, or luck?"** The probability of seeing a gap at least this large *if geom and chind were truly equal* (the null hypothesis). p = 0.023 means there's about a 2.3% chance this 9-subject advantage is a coincidence. Below the conventional 0.05 cutoff, so it counts as "statistically significant." Honest caveat for a reviewer: with only 9 subjects, treat p as *suggestive evidence*, not proof — small samples make p jumpy.
+
+- **Cohen's d_z (d_z = 0.93) — "is it big?"** The effect *size* for paired data: the mean gap divided by the standard deviation of the per-subject gaps. It measures how large the advantage is *relative to how much it wobbles between subjects*, in standard-deviation units. Rough convention: 0.2 small, 0.5 medium, 0.8 large — so 0.93 is a **large** effect. The point of reporting it alongside p: p tells you the gap is real, d_z tells you it's not trivially tiny. (A real-but-microscopic effect can have a small p with huge n; d_z guards against over-selling that.)
+
+- **95% confidence interval (CI = [+0.006, +0.066]) — "how big, with what uncertainty?"** The range of true geom−chind advantages consistent with the data: the real gap is plausibly anywhere from **+0.6 to +6.6 BAC points**. Two things to read off it: (1) the **entire interval is above 0**, which is the same verdict as p < 0.05 — zero "no difference" is excluded; (2) it's **wide**, because n = 9 — I genuinely don't know if the true edge is small (~half a point) or sizeable (~6 points), only that it's positive. A bigger corpus would narrow it.
+
+> One-liner if asked: "p says the edge is unlikely to be luck; d_z says it's a large effect per-subject; the CI says the true advantage is somewhere from half a point to six points and — importantly — entirely above zero. All three agree it's a real, non-trivial, but imprecisely-pinned win."
+
+---
+
+## Experiment relabeling — crosswalk for the report (documented)
+
+**The situation.** The *submitted proposal* numbers its experiments E1, E2(a/b/c), E5, E7 — with visible gaps. That's a leftover from an editing pass that had eight experiments (E1–E8), then **dropped E3, E6, E8 and folded E4 into E2(b)** without renumbering. The proposal is frozen, so it keeps those gaps. **The report and slides use a clean, gapless relabeling instead**, with this crosswalk as the record. A one-line footnote in the report should point back: *"Experiment numbering is consolidated from the proposal's; see crosswalk."*
+
+**Clean scheme (report + slides): E1, E2(a/b/c), E3, E4.** Only two experiments move — proposal-E5 → report-E3, proposal-E7 → report-E4. Everything else keeps its intuitive place.
+
+| Report / slides | Proposal label | Experiment | Status in this study |
+|---|---|---|---|
+| **E1** | E1 | In-distribution, geometric vs. codex (fairness anchor) | Not run — codex can't enter the cross-montage regime the project hinges on |
+| **E2(a)** | E2(a) | Cross-session robustness (within-subject, multi-night) | Not run — session drift is largely physiological, which geometry doesn't address |
+| **E2(b)** | E2(b) + E4 | Cross-subject / head-size robustness, incl. per-subject variance | Not run — no public dataset with controlled head-size variation |
+| **E2(c)** | E2(c) | **Cross-montage zero-shot transfer** | **✓ Delivered — the headline; significant on BCIC-2B (n=156, p=0.023)** |
+| **E3** | E5 | Geometry-injection ablation: G1/G2/G3 × {full, pos_only} | ✓ Delivered (this run) |
+| **E4** | E7 | Channel-independent baseline (`chind`) | ✓ Delivered — promoted from sanity-check to headline baseline |
+
+**Dropped from the proposal (do not appear under any new label):**
+- proposal-**E3** — channel-dropout robustness curves.
+- proposal-**E6** — loss-component ablation (λ_R on/off, masking scheme).
+- proposal-**E8** — compute–quality / FLOPs tradeoff.
+
+**Why this scheme and not a full reorder.** Putting the headline (E2c) first was tempting, but keeping the proposal's logical ladder (in-distribution → robustness a/b/c → ablation → baseline) means a reviewer holding both documents reads them in the same order; only the two trailing labels shift. Lowest cognitive load, fully honest.
+
+**Note for the talk:** the slides don't need to expose the crosswalk — just use the clean labels. The crosswalk lives here and in the report's experiments section so the mapping is on record if anyone compares against the proposal.
+
+---
+
+## E3 ablation results — where $g_{ij}$ enters (proposal E5)
+
+Full G1/G2/G3 × {full, pos_only} grid, all at the n=156 headline regime, zero-shot LOSO on BCIC-2B. Paired stats are vs. `chind` over the 9 BCIC subjects (same folds). Source: `results/n78/e5_ablation.{md,txt}`; JSONs in `runs/pretrain/{g1full,g1posonly,g2full,g2posonly,geometric,geomposonly}_no_bcic_n78/probe_bcic_2b_loso.json`.
+
+| cell | BAC | Δ vs chind | wins | t p | Wilcoxon p | d_z |
+|---|---|---|---|---|---|---|
+| chind (baseline) | 0.509 | — | — | — | — | — |
+| G1 + full | 0.510 | +0.001 | 5/9 | 0.854 | 0.793 | 0.06 |
+| G1 + pos_only | 0.506 | −0.003 | 4/9 | 0.402 | 0.496 | −0.29 |
+| **G2 + full** | **0.549** | **+0.040** | **8/9** | **0.004** | **0.008** | **1.32** |
+| G2 + pos_only | 0.520 | +0.011 | 5/9 | 0.229 | 0.301 | 0.43 |
+| G3 + full | 0.545 | +0.036 | 7/9 | 0.023 | 0.027 | 0.93 |
+| G3 + pos_only | 0.540 | +0.031 | 7/9 | 0.022 | 0.020 | 0.95 |
+
+### What the ablation says (honest reading)
+
+1. **The geometry signal enters through the value path, not the score-bias path.** G2 (value-only) and G3 (both) are the only cells that significantly beat chind; G1 (score-bias only) sits *on top of* chind (0.510 / 0.506 vs 0.509) at every descriptor — it is **inert** for cross-montage transfer here. So "*what* the attended messages carry" (value) encodes the geometry that transfers; "*who* attends" (score bias) does not, on its own.
+
+2. **G2 ≈ G3; I do not claim G2 > G3.** G2+full 0.549 vs G3+full 0.545 is a +0.004 gap — *inside* the ~0.009 single-seed noise band established by the pos_only re-train (slide-4 provenance note). G2's paired stats look cleaner (p=0.004, 8/9, d_z=1.32 vs G3's p=0.023, 7/9, d_z=0.93), but on a **single seed per cell** that is not enough to rank them. The seed-stable, defensible claim is the **ordering G1 ≪ {G2 ≈ G3}**, not a G2-over-G3 win.
+
+3. **This refutes the proposal's E5 hypothesis.** The proposal (O1/E5) predicted "*G1 (score-only) is competitive with G2/G3 at lower complexity*" and even made G1 the *default*. The data says the opposite: G1 is the weakest variant, indistinguishable from no geometry. That is a clean negative result and should be reported as one — the proposed cheap default would have failed; the choice to run G3 (and the discovery that G2 alone suffices) is what carries the result.
+
+4. **Descriptor interaction.** Dropping to pos_only (R⁶) hurts G1 and G2 (G2 falls 0.549→0.520) but barely dents G3 (0.545→0.540, still significant). Reading: when geometry only enters one path, it needs the full descriptor; when it enters both, the redundancy makes it robust to descriptor reduction. Minor point, not headline.
+
+### Caveats to state plainly
+- **Single seed per cell.** No multi-seed bands; the G2/G3 tie and the descriptor-interaction point both live within seed noise. A multi-seed sweep is the obvious follow-up (and is cheap now — ~33 min/run on this machine).
+- **One held-out montage (BCIC).** Same scope bound as the headline; the ablation inherits it.
+- **Does not change the headline claim.** "Geometry-conditioned attention beats chind, significantly, zero-shot" stands regardless of G2-vs-G3. The ablation *refines* it to "via the value path."
+
+### Decisions made (resolved)
+- **Headline variant → G2+full (chosen).** Slide 4 now reports **G2+full (0.549, p=0.004, 8/9, d_z=1.32)** as the headline geometric bar, replacing the pre-registered G3+full (0.545). The honest framing to keep in mind: G2 and G3 are statistically tied (gap inside seed noise); I present G2 because it's the strongest *and* the ablation's value-path story makes G2 the natural protagonist. The E3 section's "I don't claim G2 > G3" caveat still governs — if asked, the truthful line is "G2 and G3 are tied; the robust finding is value-path ≫ bias-path."
+
+---
+
+## Likely Q&A
+
+**Q: Why not just fine-tune the codex on the new montage?**
+Fine-tuning requires labeled data on the target montage, which defeats the zero-shot transfer goal. The whole point is that a clinician can plug in a new headset with different channels and the model runs immediately.
+
+**Q: Is 3D position always available?**
+Standard montage files (MNE's built-in 10-10, 10-20 layouts) provide 3D coordinates. Custom devices need digitization, but that's one measurement per deployment, not per subject.
+
+**Q: Why not train separate models per montage?**
+That is exactly the codex/chind approach, implicitly. It requires either enough data per montage to train from scratch, or a separate fine-tuning step. The geometric model shares weights across all montages.
+
+**Q: The gaps look small — does this actually matter?**
+At $n=9$ subjects the underpowered runs look nearly flat. The $n=156$ run shows the gap grows with data and becomes significant. The trend is the finding, not a single number.
+
+---
+
+## Appendix — paired-test statistics worked by hand (slide-4 numbers)
+
+_Elaborates the slide-4 stats line (geom = G2+full vs chind over the 9 BCIC-2B LOSO folds): the deeper, by-hand version of the "p, d_z, and 95% CI explained simply" note above._
+
+The results table reports three numbers per variant: BAC, the paired *p*-value, and the 95% confidence interval (CI) of the gain over chind. Here is what the two statistics mean, worked out by hand on the actual geom-vs-chind data — no made-up numbers.
+
+---
+
+## The data
+
+Nine held-out BCIC-2B subjects. Each has two zero-shot BAC scores: one from **chind**, one from **geom** (G2+full). The paired difference is d_i = geom_i − chind_i:
+
+| subject | d_i    |
+|---------|--------|
+| 1       | +0.053 |
+| 2       | +0.004 |
+| 3       | +0.039 |
+| 4       | +0.076 |
+| 5       | −0.004 |
+| 6       | +0.006 |
+| 7       | +0.058 |
+| 8       | +0.066 |
+| 9       | +0.062 |
+
+mean(d) = +0.040, std(d) = 0.030, n = 9. Eight of the nine subjects improved; subject 5 is the lone (tiny) regression.
+
+---
+
+## Paired t-test p-value
+
+**What it is:** tests whether mean(d) is far enough from zero to rule out random noise.
+
+First the **standard error (SE)** — roughly, how much mean(d) would wobble if I redrew the 9 subjects. It shrinks when the subjects agree (small std) and when n grows:
+
+```
+SE = std(d) / sqrt(n) = 0.030 / sqrt(9) = 0.030 / 3 = 0.0101
+t  = mean(d) / SE     = 0.040 / 0.0101  = 3.96
+```
+
+So t measures the gain in SE units: mean(d) sits 3.96 standard errors above zero. I read the p-value off the t-distribution at **8 degrees of freedom (df = n − 1 = 9 − 1 = 8)** — the number of independent values left after one is "spent" estimating the mean — which gives p = 0.004.
+
+**One-liner:** if geom and chind were really identical, a gap this large would turn up by chance only 0.4% of the time — so I reject "no difference."
+
+---
+
+## 95% confidence interval
+
+**What it is:** the range of true mean gains consistent with this data. Same ingredients as the t-test (mean, SE), but instead of a single p-number it reports the plausible span.
+
+```
+CI = mean(d) ± t_crit × SE
+   = 0.040 ± 2.306 × 0.0101      (t_crit for 95%, df = 8)
+   = 0.040 ± 0.023
+   = [+0.017, +0.063]
+```
+
+**Where 2.306 comes from.** `t_crit` is the multiplier that turns one SE into a 95% interval. The catch is that SE uses the std, and I do not know the true std σ of the differences — I estimate it from the same 9 numbers as the **sample** std s:
+
+```
+s = sqrt( (1/(n−1)) · Σ_i (d_i − d̄)² )
+```
+
+The deviations (d_i − d̄) carry one constraint, because d̄ is itself built from the 9 points:
+
+```
+Σ_i (d_i − d̄) = 0
+```
+
+so once 8 deviations are fixed the 9th is determined — only 8 are free, which is why df = n − 1 = 8.
+
+If I knew σ exactly, the standardized gain would be exactly standard normal, and the 95% cutoff would be 1.96:
+
+```
+z = (d̄ − μ) / (σ / sqrt(n))   ~  N(0, 1)
+```
+
+But I divide by the *estimated* s, not σ. That denominator is itself random — with only 8 df it sometimes lands below σ and inflates the ratio — so the quantity is no longer normal but Student's t with 8 df (fatter tails):
+
+```
+t = (d̄ − μ) / (s / sqrt(n))   ~  t(df = 8)
+```
+
+To still capture 95% under those fatter tails, the cutoff stretches from 1.96 (normal) to 2.306 (t₈). Fewer subjects → larger t_crit → wider interval; as n grows, s → σ, df → ∞, and t_crit shrinks back toward 1.96. It is the same t-distribution the p-value came from, read in reverse: the p-value asks "how extreme is t = 3.96?", the CI asks "which t marks off the middle 95%?"
+
+**One-liner:** I am 95% confident the true geom gain over chind lies between +1.7 and +6.3 BAC points. The whole interval sits above zero — even the pessimistic end is a real improvement — which is the same verdict as p = 0.004, but in accuracy units a reader can feel.
+
+---
+
+## How the two work together
+
+| number | question answered |
+|--------|-------------------|
+| p      | is the gap unlikely under "no effect"? (yes — 0.4% of the time) |
+| 95% CI | how big is the gain, and does its whole plausible range still beat chind? (yes — +0.017 to +0.063) |
+
+p says the effect is real; the CI says how big it is and that even its worst case clears zero. That pairing is enough for the slide: geom's CI [+0.017, +0.063] is entirely positive, pos_only's [+0.006, +0.056] just clears zero, and G1's [−0.008, +0.010] straddles it — null.

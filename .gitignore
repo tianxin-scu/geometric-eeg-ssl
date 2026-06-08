@@ -6,19 +6,23 @@ __pycache__/
 venv/
 env/
 
-# Data and checkpoints (NEVER committed)
-data/
+# Data and checkpoints (NEVER committed). Anchored to repo root so that
+# tracked config dirs like configs/data/ are not swept up.
+/data/
 /datasets/
-runs/
-cache/
-mne_data/
+/runs/
+/cache/
+/mne_data/
+/checkpoints/
 *.edf
 *.gdf
 *.fif
 *.set
-checkpoints/
 *.pt
 *.ckpt
+*.pth
+*.npy
+*.npz
 
 # Experiment tracking
 wandb/
@@ -31,19 +35,29 @@ mlruns/
 .idea/
 *.swp
 
-# LaTeX build artifacts (in case report is built here)
+# LaTeX. Sources stay local-only; only the compiled PDFs are published.
+*.tex
+*.bib
+*.cls
+*.sty
 *.aux
 *.log
 *.out
 *.bbl
 *.blg
 *.toc
+*.fls
+*.fdb_latexmk
+*.nav
+*.snm
 *.synctex.gz
+*.xdv
 
-# Local project notes and session context
-docs/
+# docs/: only the public-facing summary is tracked; anything else stays local.
+/docs/*
+!/docs/project_summary.md
 
-# Claude Code
+# Claude Code / assistant context — never committed
 CLAUDE.md
 .claude/
 
