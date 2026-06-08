@@ -53,9 +53,9 @@ mlruns/
 *.synctex.gz
 *.xdv
 
-# docs/: only the public-facing summary is tracked; anything else stays local.
+# docs/ is entirely local: internal notes, project summary, LaTeX sources.
+# GitHub publishes only the compiled PDFs in report/ and the reproduction code.
 /docs/*
-!/docs/project_summary.md
 
 # Claude Code / assistant context — never committed
 CLAUDE.md

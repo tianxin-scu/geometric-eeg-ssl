@@ -15,9 +15,9 @@ never seen in pretraining**.
 7/9 subjects); the codex baseline, evaluated by name-aligned transfer, reaches
 only 0.522.
 
-This is the **report-drafting snapshot** — current content only. For
-orientation read [CLAUDE.md](CLAUDE.md) and [docs/project_summary.md](docs/project_summary.md);
-the draft lives in [final_report/report.md](final_report/report.md).
+The compiled deliverables are [report/main.pdf](report/main.pdf) (report) and
+[report/slides.pdf](report/slides.pdf) (talk). The code below reproduces the
+results they cite.
 
 ## Pipeline
 
